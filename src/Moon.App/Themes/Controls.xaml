@@ -1,0 +1,64 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <!-- Estilos de controles reutilizables. Solo usan tokens (DynamicResource). -->
+
+    <!-- Botón cuadrado con un icono de la fuente Segoe Fluent Icons. -->
+    <Style x:Key="IconButton" TargetType="Button">
+        <Setter Property="Width" Value="{DynamicResource Size.IconButton}" />
+        <Setter Property="Height" Value="{DynamicResource Size.IconButton}" />
+        <Setter Property="Foreground" Value="{DynamicResource Brush.Text}" />
+        <Setter Property="FontFamily" Value="{DynamicResource Font.Icons}" />
+        <Setter Property="FontSize" Value="{DynamicResource FontSize.Icon}" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border x:Name="Background"
+                            Background="Transparent"
+                            CornerRadius="{DynamicResource Radius.Control}">
+                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Background" Property="Background" Value="{DynamicResource Brush.SurfaceHover}" />
+                        </Trigger>
+                        <Trigger Property="IsPressed" Value="True">
+                            <Setter TargetName="Background" Property="Background" Value="{DynamicResource Brush.Surface}" />
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter Property="Opacity" Value="0.4" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- Etiqueta que se puede pulsar (por ejemplo, el tema elegido). -->
+    <Style x:Key="ChipButton" TargetType="Button">
+        <Setter Property="Foreground" Value="{DynamicResource Brush.TextMuted}" />
+        <Setter Property="FontFamily" Value="{DynamicResource Font.Main}" />
+        <Setter Property="FontSize" Value="{DynamicResource FontSize.Small}" />
+        <Setter Property="Background" Value="{DynamicResource Brush.Surface}" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border x:Name="Background"
+                            Background="{TemplateBinding Background}"
+                            CornerRadius="{DynamicResource Radius.Control}"
+                            Padding="{DynamicResource Padding.Chip}">
+                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Background" Property="Background" Value="{DynamicResource Brush.SurfaceHover}" />
+                            <Setter Property="Foreground" Value="{DynamicResource Brush.Text}" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+</ResourceDictionary>

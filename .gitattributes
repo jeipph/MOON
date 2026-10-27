@@ -1,0 +1,4 @@
+# Saltos de línea: Windows (CRLF) en el disco, LF dentro de git. Evita los avisos "LF will be replaced".
+* text=auto eol=crlf
+*.png binary
+*.ico binary

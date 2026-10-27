@@ -1,0 +1,74 @@
+<Window x:Class="Moon.App.Windows.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:vm="clr-namespace:Moon.App.ViewModels"
+        mc:Ignorable="d"
+        d:DataContext="{d:DesignInstance vm:MainViewModel}"
+        Title="MOON"
+        Icon="/Assets/moon.ico"
+        Width="{DynamicResource Size.Window.Width}"
+        Height="{DynamicResource Size.Window.Height}"
+        MinWidth="{DynamicResource Size.Window.MinWidth}"
+        MinHeight="{DynamicResource Size.Window.MinHeight}"
+        WindowStartupLocation="CenterScreen"
+        Background="{DynamicResource Brush.Background}"
+        Foreground="{DynamicResource Brush.Text}"
+        FontFamily="{DynamicResource Font.Main}"
+        FontSize="{DynamicResource FontSize.Body}">
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="{DynamicResource Size.TopBar}" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <!-- Barra superior: logo y tema -->
+        <Border Grid.Row="0"
+                Padding="{DynamicResource Padding.TopBar}"
+                BorderBrush="{DynamicResource Brush.Border}"
+                BorderThickness="0,0,0,1">
+            <DockPanel LastChildFill="False">
+                <TextBlock DockPanel.Dock="Left"
+                           VerticalAlignment="Center"
+                           FontSize="{DynamicResource FontSize.Logo}"
+                           FontWeight="SemiBold"
+                           Text="MOON" />
+                <Button DockPanel.Dock="Right"
+                        AutomationProperties.Name="Tema"
+                        Style="{StaticResource ChipButton}"
+                        VerticalAlignment="Center"
+                        Command="{Binding NextThemeCommand}"
+                        ToolTip="Cambiar tema: Sistema, Oscuro o Claro">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock FontFamily="{DynamicResource Font.Icons}"
+                                   VerticalAlignment="Center"
+                                   Text="&#xE706;" />
+                        <TextBlock Margin="{DynamicResource Space.Gap}"
+                                   VerticalAlignment="Center"
+                                   Text="{Binding ThemeLabel}" />
+                    </StackPanel>
+                </Button>
+            </DockPanel>
+        </Border>
+
+        <!-- Biblioteca vacía (L3 la llenará) -->
+        <StackPanel Grid.Row="1"
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Center">
+            <TextBlock HorizontalAlignment="Center"
+                       FontFamily="{DynamicResource Font.Icons}"
+                       FontSize="{DynamicResource FontSize.EmptyIcon}"
+                       Foreground="{DynamicResource Brush.TextMuted}"
+                       Text="&#xE82D;" />
+            <TextBlock Margin="{DynamicResource Space.Above}"
+                       HorizontalAlignment="Center"
+                       FontSize="{DynamicResource FontSize.Heading}"
+                       Text="Tu biblioteca está vacía" />
+            <TextBlock Margin="{DynamicResource Space.Above}"
+                       HorizontalAlignment="Center"
+                       Foreground="{DynamicResource Brush.TextMuted}"
+                       Text="Pronto podrás añadir tu carpeta de libros." />
+        </StackPanel>
+    </Grid>
+</Window>

@@ -1,0 +1,37 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\Moon.Windows\Moon.Windows.csproj" />
+    <ProjectReference Include="..\Moon.Core\Moon.Core.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.14" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows10.0.19041.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UseWPF>true</UseWPF>
+    <!-- El ejecutable se llama MOON.exe -->
+    <AssemblyName>MOON</AssemblyName>
+    <ApplicationIcon>Assets\moon.ico</ApplicationIcon>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+
+    <!-- Datos que muestra Windows en Propiedades → Detalles -->
+    <Version>0.1.0</Version>
+    <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
+    <Product>MOON</Product>
+    <Description>MOON: lector de libros, cómics y manga</Description>
+    <Copyright>© 2026 JeiPo</Copyright>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Icono de la ventana (se carga desde dentro del programa) -->
+    <Resource Include="Assets\moon.ico" />
+  </ItemGroup>
+
+</Project>
