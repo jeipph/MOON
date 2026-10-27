@@ -133,5 +133,6 @@ Con **ONNX Runtime** (`Microsoft.ML.OnnxRuntime` + DirectML para usar la tarjeta
 - [x] **Mejoras elegidas** (2026-10-27): ajustes de imagen (L2), Open Library (L3), mejorar nitidez y búsqueda por significado (L14). Descartada: traducción encima del globo.
 
 ## Registro de sesiones
+- **2026-10-27 (tarde) — Desarrollo.** Hechos L1, L3, L5, L2+L4 (y PDF como imágenes), L6, L7; L5b programado sin verificar. Voz elegida: Chatterbox con la voz clonada ("Voz para libros 1/2/3" en `%APPDATA%\MOON\voces`). Pruebas con el CBR y el PDF de la persona y un cómic de 200 páginas (memoria estable ~300 MB). **Mañana:** ver "Qué hacer mañana" en `README.md` (primero verificar la voz cuando la persona no use el PC). Preferencias: pruebas cortas; no mover ratón/teclado si la persona está usando el PC.
 - **2026-10-27 — Investigación del ecosistema** (`04-RESEARCH.md` §8): Readest, NeeView (C#/WPF, MIT: referencia para L2), Seanime, Mihon, Komga/Kavita, OCR en ONNX, IA sin spoilers. Decisiones: EN→ES, sin anime, sin cuentas, IA más adelante (L13).
 - **2026-10-26 — Planificación.** Programa 2 redefinido como lector (antes: archivos + notas). Investigación en `04-RESEARCH.md`. Sin código.

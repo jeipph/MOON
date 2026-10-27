@@ -2,6 +2,14 @@
 
 Lee este archivo completo antes de tocar nada. También aplican las reglas de `../NOX/AGENTS.md` (persona usuaria, flujo, git, español, un paso por vez).
 
+**Antes de empezar:** lee "Qué hacer mañana" en `README.md` (estado actual y siguiente paso).
+
+## Cómo trabajar con esta persona (aprendido)
+- **Pruebas cortas**: una pasada, pocos pasos. No repetir scripts largos (gastan tokens); si falla el script, corregir y seguir desde ahí.
+- **No mover el ratón ni pulsar teclas si la persona está usando el PC** (las pruebas de interfaz hacen clics reales y pueden caer en otra ventana). Preguntar antes; en scripts, comprobar que la ventana de MOON está al frente y detenerse si no.
+- Probar siempre en una copia: `MOON.exe --datos <carpeta>` (no toca la biblioteca real).
+- PowerShell 5.1: guardar los scripts con BOM (tildes); `$s` y `$S` son la misma variable.
+
 ## Proyecto
 Lector de escritorio Windows 11 llamado **MOON**: abre cómics/manga (CBZ, CBR, carpetas de imágenes), libros (EPUB) y PDF; permite subrayar, anotar, buscar palabras en diccionario, hacer OCR de una zona de la página y buscar el origen de una imagen.
 
