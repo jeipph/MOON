@@ -16,14 +16,20 @@
         Background="{DynamicResource Brush.Background}"
         Foreground="{DynamicResource Brush.Text}"
         FontFamily="{DynamicResource Font.Main}"
-        FontSize="{DynamicResource FontSize.Body}">
+        FontSize="{DynamicResource FontSize.Body}"
+        AllowDrop="True"
+        Drop="OnDrop">
+    <Window.Resources>
+        <BooleanToVisibilityConverter x:Key="Visible" />
+    </Window.Resources>
+
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="{DynamicResource Size.TopBar}" />
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
 
-        <!-- Barra superior: logo y tema -->
+        <!-- Barra superior: logo, añadir/enlazar, búsqueda y tema -->
         <Border Grid.Row="0"
                 Padding="{DynamicResource Padding.TopBar}"
                 BorderBrush="{DynamicResource Brush.Border}"
@@ -34,41 +40,239 @@
                            FontSize="{DynamicResource FontSize.Logo}"
                            FontWeight="SemiBold"
                            Text="MOON" />
+
                 <Button DockPanel.Dock="Right"
+                        Margin="{DynamicResource Space.Gap}"
                         AutomationProperties.Name="Tema"
                         Style="{StaticResource ChipButton}"
                         VerticalAlignment="Center"
                         Command="{Binding NextThemeCommand}"
                         ToolTip="Cambiar tema: Sistema, Oscuro o Claro">
                     <StackPanel Orientation="Horizontal">
-                        <TextBlock FontFamily="{DynamicResource Font.Icons}"
-                                   VerticalAlignment="Center"
-                                   Text="&#xE706;" />
-                        <TextBlock Margin="{DynamicResource Space.Gap}"
-                                   VerticalAlignment="Center"
-                                   Text="{Binding ThemeLabel}" />
+                        <TextBlock FontFamily="{DynamicResource Font.Icons}" VerticalAlignment="Center" Text="&#xE706;" />
+                        <TextBlock Margin="{DynamicResource Space.Gap}" VerticalAlignment="Center" Text="{Binding ThemeLabel}" />
+                    </StackPanel>
+                </Button>
+
+                <TextBox DockPanel.Dock="Right"
+                         Width="{DynamicResource Size.SearchBox}"
+                         VerticalAlignment="Center"
+                         AutomationProperties.Name="Buscar"
+                         Style="{StaticResource SearchBox}"
+                         Tag="Buscar título, autor o serie"
+                         Text="{Binding Library.SearchText, UpdateSourceTrigger=PropertyChanged}" />
+
+                <Button DockPanel.Dock="Right"
+                        Margin="0,0,16,0"
+                        AutomationProperties.Name="Enlazar carpeta"
+                        Style="{StaticResource ToolButton}"
+                        VerticalAlignment="Center"
+                        Command="{Binding Library.LinkFolderCommand}"
+                        ToolTip="Usa los libros de una carpeta o disco externo sin copiarlos">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock FontFamily="{DynamicResource Font.Icons}" VerticalAlignment="Center" Text="&#xE71B;" />
+                        <TextBlock Margin="{DynamicResource Space.Gap}" VerticalAlignment="Center" Text="Enlazar carpeta" />
+                    </StackPanel>
+                </Button>
+
+                <Button DockPanel.Dock="Right"
+                        Margin="0,0,8,0"
+                        AutomationProperties.Name="Añadir libros"
+                        Style="{StaticResource ToolButton}"
+                        VerticalAlignment="Center"
+                        Command="{Binding Library.AddBooksCommand}"
+                        ToolTip="Copia libros a la carpeta de MOON (Documentos\MOON\Biblioteca)">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock FontFamily="{DynamicResource Font.Icons}" VerticalAlignment="Center" Text="&#xE710;" />
+                        <TextBlock Margin="{DynamicResource Space.Gap}" VerticalAlignment="Center" Text="Añadir libros" />
                     </StackPanel>
                 </Button>
             </DockPanel>
         </Border>
 
-        <!-- Biblioteca vacía (L3 la llenará) -->
-        <StackPanel Grid.Row="1"
-                    HorizontalAlignment="Center"
-                    VerticalAlignment="Center">
-            <TextBlock HorizontalAlignment="Center"
-                       FontFamily="{DynamicResource Font.Icons}"
-                       FontSize="{DynamicResource FontSize.EmptyIcon}"
-                       Foreground="{DynamicResource Brush.TextMuted}"
-                       Text="&#xE82D;" />
-            <TextBlock Margin="{DynamicResource Space.Above}"
-                       HorizontalAlignment="Center"
-                       FontSize="{DynamicResource FontSize.Heading}"
-                       Text="Tu biblioteca está vacía" />
-            <TextBlock Margin="{DynamicResource Space.Above}"
-                       HorizontalAlignment="Center"
-                       Foreground="{DynamicResource Brush.TextMuted}"
-                       Text="Pronto podrás añadir tu carpeta de libros." />
-        </StackPanel>
+        <Grid Grid.Row="1" DataContext="{Binding Library}">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="{DynamicResource Size.Sidebar}" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+
+            <!-- Barra lateral: carpetas de la biblioteca -->
+            <Border Grid.Column="0"
+                    Padding="{DynamicResource Padding.Sidebar}"
+                    BorderBrush="{DynamicResource Brush.Border}"
+                    BorderThickness="0,0,1,0">
+                <DockPanel>
+                    <TextBlock DockPanel.Dock="Top"
+                               Margin="{DynamicResource Space.SidebarHeading}"
+                               FontSize="{DynamicResource FontSize.Small}"
+                               Foreground="{DynamicResource Brush.TextMuted}"
+                               Text="CARPETAS" />
+                    <ListBox AutomationProperties.Name="Carpetas"
+                             ItemsSource="{Binding Sources}"
+                             SelectedItem="{Binding SelectedSource}"
+                             ItemContainerStyle="{StaticResource SidebarItem}"
+                             Background="Transparent"
+                             BorderThickness="0"
+                             ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate DataType="{x:Type vm:SourceItemViewModel}">
+                                <Grid AutomationProperties.Name="{Binding Name}">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Grid.Column="0"
+                                               Margin="0,2,10,0"
+                                               VerticalAlignment="Top"
+                                               FontFamily="{DynamicResource Font.Icons}"
+                                               Text="{Binding Icon}" />
+                                    <StackPanel Grid.Column="1">
+                                        <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" />
+                                        <TextBlock FontSize="{DynamicResource FontSize.Micro}"
+                                                   Foreground="{DynamicResource Brush.TextMuted}"
+                                                   Text="{Binding Detail}"
+                                                   ToolTip="{Binding Detail}"
+                                                   TextTrimming="CharacterEllipsis" />
+                                    </StackPanel>
+                                    <Button Grid.Column="2"
+                                            Width="28" Height="28"
+                                            Style="{StaticResource IconButton}"
+                                            FontSize="{DynamicResource FontSize.Small}"
+                                            AutomationProperties.Name="Quitar carpeta"
+                                            ToolTip="Quitar de la biblioteca (no borra los archivos)"
+                                            Visibility="{Binding CanUnlink, Converter={StaticResource Visible}}"
+                                            Command="{Binding DataContext.UnlinkCommand, RelativeSource={RelativeSource AncestorType=ListBox}}"
+                                            CommandParameter="{Binding}"
+                                            Content="&#xE711;" />
+                                </Grid>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                </DockPanel>
+            </Border>
+
+            <!-- Portadas -->
+            <Grid Grid.Column="1" Margin="{DynamicResource Padding.Library}">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+
+                <TextBlock Grid.Row="0"
+                           AutomationProperties.AutomationId="Estado"
+                           Margin="{DynamicResource Space.Status}"
+                           FontSize="{DynamicResource FontSize.Small}"
+                           Foreground="{DynamicResource Brush.TextMuted}"
+                           Text="{Binding Status}"
+                           TextTrimming="CharacterEllipsis" />
+
+                <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                    <ItemsControl AutomationProperties.Name="Libros" ItemsSource="{Binding Books}">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <WrapPanel />
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate DataType="{x:Type vm:BookItemViewModel}">
+                                <Border x:Name="Card"
+                                        Width="{DynamicResource Size.Card.Width}"
+                                        Margin="{DynamicResource Margin.Card}"
+                                        Background="Transparent"
+                                        Cursor="Hand"
+                                        AutomationProperties.Name="{Binding Title}"
+                                        ToolTip="{Binding Title}"
+                                        Loaded="OnBookLoaded"
+                                        MouseLeftButtonDown="OnBookMouseDown">
+                                    <Border.ContextMenu>
+                                        <ContextMenu>
+                                            <MenuItem Header="Abrir" Click="OnOpenBookClick" />
+                                            <MenuItem Header="Mostrar en el Explorador" Click="OnShowInExplorerClick" />
+                                            <Separator />
+                                            <MenuItem Header="Quitar de la biblioteca…" Click="OnRemoveBookClick" />
+                                        </ContextMenu>
+                                    </Border.ContextMenu>
+                                    <StackPanel>
+                                        <!-- Portada, o una dibujada con el título si no tiene -->
+                                        <Border Height="{DynamicResource Size.Cover.Height}"
+                                                CornerRadius="{DynamicResource Radius.Cover}"
+                                                Background="{DynamicResource Brush.Surface}"
+                                                BorderBrush="{DynamicResource Brush.Border}"
+                                                BorderThickness="1"
+                                                ClipToBounds="True">
+                                            <Grid>
+                                                <Image Source="{Binding Cover}" Stretch="UniformToFill" />
+                                                <Grid Margin="{DynamicResource Padding.CoverText}"
+                                                      Visibility="{Binding HasNoCover, Converter={StaticResource Visible}}">
+                                                    <TextBlock VerticalAlignment="Center"
+                                                               HorizontalAlignment="Center"
+                                                               TextAlignment="Center"
+                                                               TextWrapping="Wrap"
+                                                               FontSize="{DynamicResource FontSize.CoverTitle}"
+                                                               Text="{Binding Title}" />
+                                                    <TextBlock VerticalAlignment="Bottom"
+                                                               HorizontalAlignment="Center"
+                                                               FontSize="{DynamicResource FontSize.Micro}"
+                                                               Foreground="{DynamicResource Brush.TextMuted}"
+                                                               Text="{Binding FormatLabel}" />
+                                                </Grid>
+                                            </Grid>
+                                        </Border>
+                                        <ProgressBar Margin="{DynamicResource Space.AboveSmall}"
+                                                     Style="{StaticResource ThinProgress}"
+                                                     Value="{Binding Progress, Mode=OneWay}"
+                                                     Visibility="{Binding HasProgress, Converter={StaticResource Visible}}" />
+                                        <TextBlock Margin="{DynamicResource Space.Above}"
+                                                   Text="{Binding Title}"
+                                                   TextTrimming="CharacterEllipsis" />
+                                        <TextBlock FontSize="{DynamicResource FontSize.Small}"
+                                                   Foreground="{DynamicResource Brush.TextMuted}"
+                                                   TextTrimming="CharacterEllipsis">
+                                            <Run Text="{Binding FormatLabel, Mode=OneWay}" />
+                                            <Run Text="{Binding Author, Mode=OneWay, StringFormat='· {0}', TargetNullValue=''}" />
+                                        </TextBlock>
+                                    </StackPanel>
+                                </Border>
+                                <DataTemplate.Triggers>
+                                    <DataTrigger Binding="{Binding IsAvailable}" Value="False">
+                                        <Setter TargetName="Card" Property="Opacity" Value="{DynamicResource Opacity.Unavailable}" />
+                                        <Setter TargetName="Card" Property="ToolTip" Value="Disco desconectado" />
+                                    </DataTrigger>
+                                </DataTemplate.Triggers>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </ScrollViewer>
+
+                <!-- Biblioteca vacía -->
+                <StackPanel Grid.Row="1"
+                            HorizontalAlignment="Center"
+                            VerticalAlignment="Center"
+                            Visibility="{Binding ShowEmptyLibrary, Converter={StaticResource Visible}}">
+                    <TextBlock HorizontalAlignment="Center"
+                               FontFamily="{DynamicResource Font.Icons}"
+                               FontSize="{DynamicResource FontSize.EmptyIcon}"
+                               Foreground="{DynamicResource Brush.TextMuted}"
+                               Text="&#xE82D;" />
+                    <TextBlock Margin="{DynamicResource Space.Above}"
+                               HorizontalAlignment="Center"
+                               FontSize="{DynamicResource FontSize.Heading}"
+                               Text="Tu biblioteca está vacía" />
+                    <TextBlock Margin="{DynamicResource Space.Above}"
+                               HorizontalAlignment="Center"
+                               TextAlignment="Center"
+                               Foreground="{DynamicResource Brush.TextMuted}"
+                               Text="Pulsa «Añadir libros» para copiarlos a MOON, o «Enlazar carpeta» para usar los de un disco.&#x0a;También puedes arrastrar archivos o carpetas a esta ventana." />
+                </StackPanel>
+
+                <TextBlock Grid.Row="1"
+                           HorizontalAlignment="Center"
+                           VerticalAlignment="Center"
+                           Foreground="{DynamicResource Brush.TextMuted}"
+                           Text="No hay libros que coincidan."
+                           Visibility="{Binding ShowNoResults, Converter={StaticResource Visible}}" />
+            </Grid>
+        </Grid>
     </Grid>
 </Window>

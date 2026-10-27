@@ -5,6 +5,7 @@ using Moon.App.Services;
 using Moon.App.ViewModels;
 using Moon.App.Windows;
 using Moon.Core.Abstractions;
+using Moon.Core.Library;
 using Moon.Core.Settings;
 
 namespace Moon.App;
@@ -21,8 +22,11 @@ public partial class App : Application
 
     protected override void OnStartup(StartupEventArgs e)
     {
-        _singleInstance = new Mutex(true, InstanceName, out bool isFirst);
-        _showSignal = new EventWaitHandle(false, EventResetMode.AutoReset, ShowSignalName);
+        // Con --datos es una copia de prueba: no choca con el MOON de verdad.
+        string? dataFolder = DataFolderFromArgs(e.Args);
+        string suffix = dataFolder is null ? "" : ".Prueba";
+        _singleInstance = new Mutex(true, InstanceName + suffix, out bool isFirst);
+        _showSignal = new EventWaitHandle(false, EventResetMode.AutoReset, ShowSignalName + suffix);
         if (!isFirst)
         {
             _showSignal.Set();
@@ -39,18 +43,38 @@ public partial class App : Application
             ReportError(args.Exception);
         };
 
-        _services = ConfigureServices();
+        _services = ConfigureServices(dataFolder);
         var window = _services.GetRequiredService<MainWindow>();
         MainWindow = window;
         window.Show();
         ListenForShowSignal(window);
+        _ = _services.GetRequiredService<LibraryViewModel>().StartAsync();
     }
 
-    private static ServiceProvider ConfigureServices()
+    /// <summary>
+    /// "--datos C:\carpeta": todo (ajustes, base de datos, copias y portadas) va a esa carpeta.
+    /// Sirve para probar MOON sin tocar la biblioteca de verdad.
+    /// </summary>
+    private static string? DataFolderFromArgs(string[] args)
+    {
+        int index = Array.FindIndex(args, a => a.Equals("--datos", StringComparison.OrdinalIgnoreCase));
+        return index >= 0 && index + 1 < args.Length ? Path.GetFullPath(args[index + 1]) : null;
+    }
+
+    private static ServiceProvider ConfigureServices(string? dataFolder)
     {
         var services = new ServiceCollection();
-        services.AddSingleton<ISettingsStore>(_ => new JsonSettingsStore());
+        services.AddSingleton<ISettingsStore>(_ =>
+            new JsonSettingsStore(dataFolder is null ? null : Path.Combine(dataFolder, "settings.json")));
         services.AddSingleton<ThemeService>();
+        services.AddSingleton(_ => new LibraryService(
+            new SqliteLibraryStore(dataFolder is null ? SqliteLibraryStore.DefaultPath : Path.Combine(dataFolder, "moon.db")),
+            dataFolder is null ? LibraryService.DefaultManagedFolder : Path.Combine(dataFolder, "Biblioteca"),
+            dataFolder is null ? LibraryService.DefaultCoversFolder : Path.Combine(dataFolder, "covers"),
+            LibraryService.CurrentDrives));
+        services.AddSingleton<LibraryWatcher>();
+        services.AddSingleton<LibraryDialogs>();
+        services.AddSingleton<LibraryViewModel>();
         services.AddSingleton<MainViewModel>();
         services.AddSingleton<MainWindow>();
         return services.BuildServiceProvider();
@@ -88,6 +112,7 @@ public partial class App : Application
     protected override void OnExit(ExitEventArgs e)
     {
         _services?.GetService<ThemeService>()?.Dispose();
+        _services?.GetService<LibraryViewModel>()?.Dispose();
         _services?.Dispose();
         _singleInstance?.Dispose();
         _showSignal?.Dispose();

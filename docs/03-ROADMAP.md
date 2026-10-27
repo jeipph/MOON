@@ -34,11 +34,14 @@ Experimentos pequeños y desechables, en `spikes/`. Documentar el resultado aqu�
 **Terminado cuando:** un CBZ de 200 páginas se lee con fluidez y la RAM no crece sin control al avanzar.
 
 ## L3 — Biblioteca y progreso (≈4 h)
-- [ ] SQLite (`Book`, `Progress`) con migración simple.
-- [ ] Carpetas de biblioteca; escaneo en segundo plano; portadas (primera página) en caché.
-- [ ] Vista de cuadrícula con búsqueda; "Continuar leyendo".
-- [ ] Hash de archivo para reconocer archivos movidos.
-- [ ] Leer `ComicInfo.xml` (título, serie, número).
+Decisión (2026-10-27): **dos formas de meter libros**: "Añadir libros…" **copia** a `Documentos\MOON\Biblioteca`; "Enlazar carpeta…" **lee en su sitio** (p. ej. un disco externo). También arrastrando archivos (se copian) o carpetas (se enlazan).
+- [x] SQLite (`%APPDATA%\MOON\moon.db`: tablas `sources` y `books`, versión con `PRAGMA user_version`).
+- [x] Carpetas de biblioteca; escaneo en segundo plano; portadas en caché (`%LOCALAPPDATA%\MOON\covers`). EPUB: título, autor, serie y portada (EPUB 2 y 3). CBZ: `ComicInfo.xml` y primera página en orden natural.
+- [x] Discos externos: si se desconecta, sus libros quedan en gris ("Desconectado") sin perder nada; si Windows le cambia la letra, se encuentra por el nombre del disco. Avisos de Windows (`WM_DEVICECHANGE`) y `FileSystemWatcher` en vez de revisar cada cierto tiempo.
+- [x] Huella del archivo (tamaño + principio y final) para reconocer libros movidos o renombrados y conservar su progreso; no se relee si no cambian tamaño ni fecha.
+- [x] Vista de cuadrícula con búsqueda (título, autor, serie), barra lateral por carpeta, menú: Abrir, Mostrar en el Explorador, Quitar.
+- [ ] "Continuar leyendo" (cuando exista el lector, L5).
+- *Verificado por Claude (2026-10-27): 31 pruebas; prueba con clics reales en una copia aparte (`MOON.exe --datos <carpeta>`): enlazar, añadir, buscar, desconectar y reconectar, tema claro. Falta que lo vea la persona.*
 - [ ] **Open Library** (sin cuenta ni clave): portada, autor y año de los libros que no los traen. Solo al pulsar "Buscar datos", con caché local. Se puede desactivar.
 
 ## L4 — CBR/RAR/7Z (≈1.5 h)

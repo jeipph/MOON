@@ -6,20 +6,23 @@ using Moon.Core.Models;
 
 namespace Moon.App.ViewModels;
 
-/// <summary>Ventana principal: por ahora, el tema. La biblioteca llegará en L3.</summary>
+/// <summary>Ventana principal: la biblioteca y el tema.</summary>
 public sealed partial class MainViewModel : ObservableObject
 {
     private readonly ISettingsStore _store;
     private readonly ThemeService _themes;
     private AppSettings _settings;
 
-    public MainViewModel(ISettingsStore store, ThemeService themes)
+    public MainViewModel(ISettingsStore store, ThemeService themes, LibraryViewModel library)
     {
         _store = store;
         _themes = themes;
+        Library = library;
         _settings = store.Load();
         _themes.Apply(_settings.Theme);
     }
+
+    public LibraryViewModel Library { get; }
 
     public AppTheme Theme => _settings.Theme;
 

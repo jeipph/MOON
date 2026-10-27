@@ -20,6 +20,30 @@
     <Thickness x:Key="Padding.Chip">10,4,10,4</Thickness>
     <Thickness x:Key="Space.Gap">8,0,0,0</Thickness>
     <Thickness x:Key="Space.Above">0,8,0,0</Thickness>
+    <Thickness x:Key="Space.AboveSmall">0,2,0,0</Thickness>
+    <Thickness x:Key="Padding.Field">10,6,10,6</Thickness>
+    <sys:Double x:Key="Size.SearchBox">260</sys:Double>
+
+    <!-- Barra lateral de carpetas -->
+    <GridLength x:Key="Size.Sidebar">240</GridLength>
+    <Thickness x:Key="Padding.Sidebar">12,16,12,16</Thickness>
+    <Thickness x:Key="Padding.SidebarItem">10,8,6,8</Thickness>
+    <Thickness x:Key="Space.SidebarHeading">10,0,0,8</Thickness>
+
+    <!-- Cuadrícula de libros -->
+    <Thickness x:Key="Padding.Library">24,16,8,24</Thickness>
+    <sys:Double x:Key="Size.Card.Width">150</sys:Double>
+    <sys:Double x:Key="Size.Cover.Height">220</sys:Double>
+    <!-- Ancho al que se decodifican las portadas (×2 para pantallas con escalado). -->
+    <sys:Int32 x:Key="Cover.DecodeWidth">300</sys:Int32>
+    <Thickness x:Key="Margin.Card">0,0,16,20</Thickness>
+    <CornerRadius x:Key="Radius.Cover">6</CornerRadius>
+    <Thickness x:Key="Padding.CoverText">10</Thickness>
+    <sys:Double x:Key="Size.Progress">3</sys:Double>
+    <sys:Double x:Key="Size.ScrollBar">8</sys:Double>
+    <CornerRadius x:Key="Radius.ScrollBar">4</CornerRadius>
+    <sys:Double x:Key="Opacity.Unavailable">0.4</sys:Double>
+    <Thickness x:Key="Space.Status">0,0,0,12</Thickness>
 
     <!-- Letras -->
     <FontFamily x:Key="Font.Main">Segoe UI Variable, Segoe UI</FontFamily>
@@ -28,6 +52,8 @@
     <sys:Double x:Key="FontSize.Heading">22</sys:Double>
     <sys:Double x:Key="FontSize.Body">14</sys:Double>
     <sys:Double x:Key="FontSize.Small">12</sys:Double>
+    <sys:Double x:Key="FontSize.Micro">11</sys:Double>
+    <sys:Double x:Key="FontSize.CoverTitle">15</sys:Double>
     <sys:Double x:Key="FontSize.Icon">16</sys:Double>
     <sys:Double x:Key="FontSize.EmptyIcon">48</sys:Double>
 </ResourceDictionary>
