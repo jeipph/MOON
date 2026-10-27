@@ -491,3 +491,6 @@ spikes/**/piper-dl/
 spikes/**/refs/
 spikes/**/muestras/
 *.onnx
+
+# Copia de exploración de foliate-js (MOON usa la de src/Moon.App/Web/foliate-js)
+spikes/S2-epub/foliate-js/
