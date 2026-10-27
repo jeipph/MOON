@@ -22,6 +22,7 @@
         PreviewKeyDown="OnPreviewKeyDown">
     <Window.Resources>
         <conv:EnumEqualsConverter x:Key="Is" />
+        <BooleanToVisibilityConverter x:Key="Visible" />
     </Window.Resources>
 
     <Grid>
@@ -38,6 +39,15 @@
                 BorderThickness="0,0,0,1">
             <DockPanel>
                 <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+                    <ToggleButton Style="{StaticResource ChoiceToggle}"
+                                  AutomationProperties.Name="Marcar zona"
+                                  ToolTip="Arrastra sobre la página para marcar una zona y escribir una nota"
+                                  IsChecked="{Binding IsMarking}"
+                                  Content="Marcar zona" />
+                    <Button Style="{StaticResource IconButton}" AutomationProperties.Name="Añadir marcador" ToolTip="Marcador en esta página"
+                            Command="{Binding AddBookmarkCommand}" Content="&#xE8A4;" />
+                    <ToggleButton Style="{StaticResource IconToggle}" AutomationProperties.Name="Notas" ToolTip="Zonas, notas y marcadores"
+                                  IsChecked="{Binding IsNotesOpen}" Content="&#xE70B;" Margin="0,0,12,0" />
                     <Button Style="{StaticResource IconButton}" AutomationProperties.Name="Alejar" ToolTip="Alejar (Ctrl −)" Command="{Binding ZoomOutCommand}" Content="&#xE71F;" />
                     <Button Style="{StaticResource ChipButton}" AutomationProperties.Name="Zoom" ToolTip="Volver al 100 % (Ctrl 0)" Command="{Binding ResetZoomCommand}" Content="{Binding ZoomText}" VerticalAlignment="Center" />
                     <Button Style="{StaticResource IconButton}" AutomationProperties.Name="Acercar" ToolTip="Acercar (Ctrl +)" Command="{Binding ZoomInCommand}" Content="&#xE8A3;" />
@@ -129,6 +139,63 @@
                 </StackPanel>
             </Border>
         </Popup>
+
+        <!-- Panel de notas (a la derecha de las páginas) -->
+        <Border Grid.Row="1"
+                HorizontalAlignment="Right"
+                Panel.ZIndex="1"
+                Width="{DynamicResource Size.SettingsPanel}"
+                Background="{DynamicResource Brush.Background}"
+                BorderBrush="{DynamicResource Brush.Border}"
+                BorderThickness="1,0,0,0"
+                Visibility="{Binding IsNotesOpen, Converter={StaticResource Visible}}">
+            <DockPanel>
+                <DockPanel DockPanel.Dock="Top" Margin="{DynamicResource Padding.Sidebar}" LastChildFill="False">
+                    <TextBlock DockPanel.Dock="Left" VerticalAlignment="Center" FontSize="{DynamicResource FontSize.Small}"
+                               Foreground="{DynamicResource Brush.TextMuted}" Text="NOTAS" />
+                    <Button DockPanel.Dock="Right" Style="{StaticResource ChipButton}" Content="Exportar…"
+                            AutomationProperties.Name="Exportar notas" Click="OnExportClick" />
+                </DockPanel>
+                <TextBlock DockPanel.Dock="Top" Margin="{DynamicResource Padding.Sidebar}" TextWrapping="Wrap" x:Name="NotesHint"
+                           FontSize="{DynamicResource FontSize.Small}" Foreground="{DynamicResource Brush.TextMuted}"
+                           Text="Pulsa «Marcar zona» y arrastra sobre la página para señalar un bocadillo, un personaje o lo que quieras." />
+                <ListBox x:Name="NotesList"
+                         AutomationProperties.Name="Lista de notas"
+                         ItemsSource="{Binding Annotations}"
+                         Background="Transparent"
+                         BorderThickness="0"
+                         ItemContainerStyle="{StaticResource SidebarItem}"
+                         ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                         MouseLeftButtonUp="OnNoteClicked"
+                         MouseDoubleClick="OnNoteDoubleClicked">
+                    <ListBox.ItemTemplate>
+                        <DataTemplate DataType="{x:Type vm:AnnotationItemViewModel}">
+                            <Grid AutomationProperties.Name="{Binding Text}">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="{DynamicResource Size.ColorBar.Grid}" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <Border Grid.Column="0" Background="{Binding ColorBrush}" CornerRadius="2" />
+                                <StackPanel Grid.Column="1" Margin="{DynamicResource Space.Gap}">
+                                    <TextBlock Text="{Binding Text}" TextWrapping="Wrap" />
+                                    <TextBlock Text="{Binding Note}" TextWrapping="Wrap" FontStyle="Italic"
+                                               Margin="{DynamicResource Space.AboveSmall}" Foreground="{DynamicResource Brush.TextMuted}"
+                                               Visibility="{Binding HasNote, Converter={StaticResource Visible}}" />
+                                    <TextBlock Text="{Binding Where}" Margin="{DynamicResource Space.AboveSmall}"
+                                               FontSize="{DynamicResource FontSize.Micro}" Foreground="{DynamicResource Brush.TextMuted}" />
+                                </StackPanel>
+                            </Grid>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                    <ListBox.ContextMenu>
+                        <ContextMenu>
+                            <MenuItem Header="Editar nota…" Click="OnEditNoteClick" />
+                            <MenuItem Header="Eliminar" Click="OnDeleteNoteClick" />
+                        </ContextMenu>
+                    </ListBox.ContextMenu>
+                </ListBox>
+            </DockPanel>
+        </Border>
 
         <!-- Páginas -->
         <Grid x:Name="PageArea" Grid.Row="1" Background="{DynamicResource Brush.Surface}" ClipToBounds="True">

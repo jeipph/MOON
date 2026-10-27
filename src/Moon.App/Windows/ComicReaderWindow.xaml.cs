@@ -7,10 +7,12 @@ using System.Windows.Input;
 using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
+using System.Windows.Shapes;
 using System.Windows.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using Moon.App.Services;
 using Moon.App.ViewModels;
+using Moon.Core.Annotations;
 using Moon.Core.Comics;
 using Moon.Core.Models;
 using Moon.Windows.Shell;
@@ -70,6 +72,9 @@ public partial class ComicReaderWindow : Window
     private bool _scrollingToPage;
     private bool _webtoonPositioning;
     private int _pagesReleased;
+    private Grid? _regionView;
+    private Point _regionStart;
+    private Rectangle? _regionPreview;
 
     public ComicReaderWindow(ComicReaderViewModel viewModel, ThemeService themes)
     {
@@ -81,7 +86,10 @@ public partial class ComicReaderWindow : Window
         WebtoonList.ItemsSource = _webtoonPages;
 
         _viewModel.ViewChanged += (_, _) => Render();
+        _viewModel.RegionsChanged += (_, _) => DrawRegions();
         _viewModel.PropertyChanged += OnViewModelChanged;
+        _viewModel.Annotations.CollectionChanged += (_, _) => UpdateNotesHint();
+        UpdateNotesHint();
         _themes.Changed += OnThemeChanged;
         SourceInitialized += (_, _) => UpdateTitleBar();
         PageArea.SizeChanged += (_, _) => _resizeTimer.Start();
@@ -112,7 +120,24 @@ public partial class ComicReaderWindow : Window
     {
         if (e.PropertyName == nameof(ComicReaderViewModel.Layout))
             Render();
+        else if (e.PropertyName == nameof(ComicReaderViewModel.IsNotesOpen))
+        {
+            // Con el panel abierto, las páginas se colocan en el espacio que queda a su izquierda.
+            PageArea.Margin = _viewModel.IsNotesOpen
+                ? new Thickness(0, 0, (double)FindResource("Size.SettingsPanel"), 0)
+                : new Thickness(0);
+            _resizeTimer.Start();
+        }
+        else if (e.PropertyName == nameof(ComicReaderViewModel.IsMarking))
+        {
+            PagedScroller.Cursor = _viewModel.IsMarking ? Cursors.Cross : null;
+            if (_viewModel.IsMarking && _viewModel.Layout == PageLayout.Webtoon)
+                ShowError("Para marcar zonas, cambia la vista a «Una página» o «Doble».");
+        }
     }
+
+    private void UpdateNotesHint() =>
+        NotesHint.Visibility = _viewModel.Annotations.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
 
     // ---- Dibujar ----
 
@@ -144,25 +169,34 @@ public partial class ComicReaderWindow : Window
             : width / widthPerHeight;
         pageHeight *= _viewModel.Zoom;
 
+        // Cada página es la imagen con una capa encima para las zonas marcadas.
         while (SpreadPanel.Children.Count < pages.Length)
-            SpreadPanel.Children.Add(new Image { Stretch = Stretch.Fill, SnapsToDevicePixels = true });
+        {
+            var view = new Grid();
+            view.Children.Add(new Image { Stretch = Stretch.Fill, SnapsToDevicePixels = true });
+            view.Children.Add(new Canvas { ClipToBounds = true });
+            SpreadPanel.Children.Add(view);
+        }
         while (SpreadPanel.Children.Count > pages.Length)
             SpreadPanel.Children.RemoveAt(SpreadPanel.Children.Count - 1);
 
         for (int i = 0; i < pages.Length; i++)
         {
-            var image = (Image)SpreadPanel.Children[i];
+            var view = (Grid)SpreadPanel.Children[i];
+            var image = (Image)view.Children[0];
             int page = pages[i];
             double pageWidth = pageHeight / _viewModel.Pages.Aspect(page);
-            image.Width = pageWidth;
-            image.Height = pageHeight;
+            view.Width = image.Width = pageWidth;
+            view.Height = image.Height = pageHeight;
             if (image.Tag is not int shown || shown != page)
             {
                 image.Source = null; // no dejar la página anterior mientras carga la nueva
                 image.Tag = page;
             }
+            view.Tag = page;
             LoadInto(image, page, pageWidth, version);
         }
+        DrawRegions();
 
         PagedScroller.ScrollToTop();
         if (_viewModel.IsRightToLeft) PagedScroller.ScrollToRightEnd(); else PagedScroller.ScrollToLeftEnd();
@@ -383,6 +417,22 @@ public partial class ComicReaderWindow : Window
     {
         if (e.OriginalSource is DependencyObject source && source.FindAncestor<ScrollBar>() is not null)
             return; // clic en la barra de desplazamiento
+        if (_viewModel.IsMarking && PageViewAt(e) is { } view)
+        {
+            // "Marcar zona": se empieza a dibujar un rectángulo sobre esta página.
+            _regionView = view;
+            _regionStart = e.GetPosition(view);
+            _regionPreview = new Rectangle
+            {
+                Stroke = (Brush)FindResource("Brush.Highlight.Yellow"),
+                StrokeThickness = 2,
+                StrokeDashArray = [4, 2],
+            };
+            ((Canvas)view.Children[1]).Children.Add(_regionPreview);
+            PagedScroller.CaptureMouse();
+            e.Handled = true;
+            return;
+        }
         _dragStart = e.GetPosition(PagedScroller);
         _scrollStart = new Point(PagedScroller.HorizontalOffset, PagedScroller.VerticalOffset);
         _dragged = false;
@@ -392,6 +442,15 @@ public partial class ComicReaderWindow : Window
     // Arrastrar mueve una página ampliada (como con el dedo en el móvil).
     private void OnPageMouseMove(object sender, MouseEventArgs e)
     {
+        if (_regionView is not null && _regionPreview is not null)
+        {
+            Point now = e.GetPosition(_regionView);
+            Canvas.SetLeft(_regionPreview, Math.Min(now.X, _regionStart.X));
+            Canvas.SetTop(_regionPreview, Math.Min(now.Y, _regionStart.Y));
+            _regionPreview.Width = Math.Abs(now.X - _regionStart.X);
+            _regionPreview.Height = Math.Abs(now.Y - _regionStart.Y);
+            return;
+        }
         if (_dragStart is not { } start || e.LeftButton != MouseButtonState.Pressed)
             return;
         Vector delta = e.GetPosition(PagedScroller) - start;
@@ -406,6 +465,11 @@ public partial class ComicReaderWindow : Window
     // Un clic (sin arrastrar) en el lado izquierdo o derecho pasa la página.
     private void OnPageMouseUp(object sender, MouseButtonEventArgs e)
     {
+        if (_regionView is { } regionView)
+        {
+            FinishRegion(regionView, e.GetPosition(regionView));
+            return;
+        }
         if (_dragStart is null)
             return;
         PagedScroller.ReleaseMouseCapture();
@@ -414,9 +478,131 @@ public partial class ComicReaderWindow : Window
         _dragStart = null;
         if (wasDrag)
             return;
+        // Clic sobre una zona marcada: abrir su nota (en vez de pasar la página).
+        if (RegionAt(e) is { } region)
+        {
+            EditNote(region);
+            return;
+        }
         double x = e.GetPosition(PageArea).X / Math.Max(1, PageArea.ActualWidth);
         if (x < TurnZone) _viewModel.GoLeft();
         else if (x > 1 - TurnZone) _viewModel.GoRight();
+    }
+
+    // ---- Zonas marcadas ----
+
+    // Al soltar: si el rectángulo tiene tamaño, se pide la nota y se guarda.
+    private void FinishRegion(Grid view, Point end)
+    {
+        PagedScroller.ReleaseMouseCapture();
+        ((Canvas)view.Children[1]).Children.Remove(_regionPreview);
+        _regionView = null;
+        _regionPreview = null;
+        NormalizedRect? rect = NormalizedRect.From(
+            _regionStart.X / view.ActualWidth, _regionStart.Y / view.ActualHeight,
+            end.X / view.ActualWidth, end.Y / view.ActualHeight);
+        if (rect is null || view.Tag is not int page)
+            return; // fue un clic, no un rectángulo
+        var dialog = new NoteDialog(this, $"Zona marcada · página {page + 1}", "", HighlightColor.Yellow);
+        dialog.DeleteButton.Visibility = Visibility.Collapsed; // aún no existe: no hay nada que eliminar
+        if (dialog.Ask() == NoteDialogResult.Save)
+            _viewModel.AddRegion(page, rect.Value, dialog.Note, dialog.Color);
+    }
+
+    // Dibuja los rectángulos guardados de las páginas que se ven.
+    private void DrawRegions()
+    {
+        foreach (Grid view in SpreadPanel.Children.OfType<Grid>())
+        {
+            var canvas = (Canvas)view.Children[1];
+            canvas.Children.Clear();
+            if (view.Tag is not int page)
+                continue;
+            foreach (AnnotationItemViewModel item in _viewModel.RegionsOn(page))
+            {
+                if (item.Annotation.Rect is not { } r)
+                    continue;
+                var shape = new Rectangle
+                {
+                    Width = r.Width * view.Width,
+                    Height = r.Height * view.Height,
+                    Stroke = item.ColorBrush,
+                    StrokeThickness = 2,
+                    Fill = new SolidColorBrush(((SolidColorBrush)item.ColorBrush).Color) { Opacity = 0.18 },
+                    ToolTip = item.HasNote ? item.Note : "Zona marcada (clic para escribir una nota)",
+                    Tag = item,
+                };
+                Canvas.SetLeft(shape, r.X * view.Width);
+                Canvas.SetTop(shape, r.Y * view.Height);
+                canvas.Children.Add(shape);
+            }
+        }
+    }
+
+    private Grid? PageViewAt(MouseEventArgs e) =>
+        SpreadPanel.Children.OfType<Grid>().FirstOrDefault(v =>
+        {
+            Point p = e.GetPosition(v);
+            return p.X >= 0 && p.Y >= 0 && p.X <= v.ActualWidth && p.Y <= v.ActualHeight;
+        });
+
+    private AnnotationItemViewModel? RegionAt(MouseEventArgs e) =>
+        (e.OriginalSource as Rectangle)?.Tag as AnnotationItemViewModel;
+
+    private void EditNote(AnnotationItemViewModel item)
+    {
+        var dialog = new NoteDialog(this, item.Text + (item.Annotation.Chapter is { Length: > 0 } c ? $" · {c}" : ""),
+            item.Note, item.Annotation.Color, showColors: item.Annotation.Kind != AnnotationKind.Bookmark);
+        switch (dialog.Ask())
+        {
+            case NoteDialogResult.Save:
+                _viewModel.UpdateAnnotation(item, dialog.Note, dialog.Color);
+                break;
+            case NoteDialogResult.Delete:
+                _viewModel.DeleteAnnotation(item);
+                break;
+        }
+    }
+
+    private void OnNoteClicked(object sender, MouseButtonEventArgs e)
+    {
+        if ((e.OriginalSource as DependencyObject)?.FindAncestor<ListBoxItem>()?.DataContext is AnnotationItemViewModel item)
+            _viewModel.GoToAnnotationCommand.Execute(item);
+    }
+
+    private void OnNoteDoubleClicked(object sender, MouseButtonEventArgs e)
+    {
+        if ((e.OriginalSource as DependencyObject)?.FindAncestor<ListBoxItem>()?.DataContext is AnnotationItemViewModel item)
+            EditNote(item);
+    }
+
+    private void OnEditNoteClick(object sender, RoutedEventArgs e)
+    {
+        if (NotesList.SelectedItem is AnnotationItemViewModel item)
+            EditNote(item);
+    }
+
+    private void OnDeleteNoteClick(object sender, RoutedEventArgs e)
+    {
+        if (NotesList.SelectedItem is AnnotationItemViewModel item)
+            _viewModel.DeleteAnnotation(item);
+    }
+
+    private void OnExportClick(object sender, RoutedEventArgs e)
+    {
+        if (_viewModel.Annotations.Count == 0)
+        {
+            MessageBox.Show(this, "Este cómic aún no tiene zonas, notas ni marcadores.", "MOON");
+            return;
+        }
+        var dialog = new Microsoft.Win32.SaveFileDialog
+        {
+            Title = "Exportar notas",
+            FileName = string.Concat(_viewModel.Title.Split(System.IO.Path.GetInvalidFileNameChars())) + " - notas",
+            Filter = "Markdown (Obsidian, Notion…)|*.md|CSV (Excel)|*.csv",
+        };
+        if (dialog.ShowDialog(this) == true)
+            _viewModel.Export(dialog.FileName);
     }
 
     private void OnSliderDragCompleted(object sender, DragCompletedEventArgs e) => JumpToSliderPage();

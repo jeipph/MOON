@@ -1,6 +1,8 @@
+using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Moon.App.Services;
+using Moon.Core.Annotations;
 using Moon.Core.Comics;
 using Moon.Core.Library;
 using Moon.Core.Models;
@@ -35,6 +37,89 @@ public sealed partial class ComicReaderViewModel : ObservableObject, IDisposable
         _saveTimer = new Timer(_ => SaveProgress());
         RebuildSpreads(ComicView.PageFromLocation(book.Location) ?? 0);
         Pages.SizesKnown += (_, _) => System.Windows.Application.Current.Dispatcher.BeginInvoke(() => RebuildSpreads(CurrentPage));
+        foreach (Annotation annotation in library.GetAnnotations(book.Id))
+            Annotations.Add(new AnnotationItemViewModel(annotation));
+    }
+
+    // ---- Zonas marcadas, notas y marcadores ----
+
+    public ObservableCollection<AnnotationItemViewModel> Annotations { get; } = [];
+
+    [ObservableProperty]
+    public partial bool IsNotesOpen { get; set; }
+
+    /// <summary>Modo "Marcar zona": arrastrar sobre la página dibuja un rectángulo en vez de moverla.</summary>
+    [ObservableProperty]
+    public partial bool IsMarking { get; set; }
+
+    /// <summary>Se avisa cuando cambian las zonas (para redibujarlas).</summary>
+    public event EventHandler? RegionsChanged;
+
+    public IEnumerable<AnnotationItemViewModel> RegionsOn(int page) =>
+        Annotations.Where(a => a.Annotation.Kind == AnnotationKind.Region && ComicView.PageFromLocation(a.Annotation.Location) == page);
+
+    public AnnotationItemViewModel AddRegion(int page, NormalizedRect rect, string note, HighlightColor color)
+    {
+        Annotation saved = _library.AddAnnotation(new Annotation(
+            0, Book.Id, AnnotationKind.Region, ComicView.PageLocation(page), "", note, color,
+            $"Página {page + 1}", (page + 1.0) / PageCount, DateTime.Now) { Rect = rect });
+        var item = new AnnotationItemViewModel(saved);
+        Insert(item);
+        RegionsChanged?.Invoke(this, EventArgs.Empty);
+        return item;
+    }
+
+    [RelayCommand]
+    private void AddBookmark()
+    {
+        Annotation saved = _library.AddAnnotation(new Annotation(
+            0, Book.Id, AnnotationKind.Bookmark, ComicView.PageLocation(CurrentPage), "", "", HighlightColor.Blue,
+            $"Página {CurrentPage + 1}", (CurrentPage + 1.0) / PageCount, DateTime.Now));
+        Insert(new AnnotationItemViewModel(saved));
+        IsNotesOpen = true;
+    }
+
+    public void UpdateAnnotation(AnnotationItemViewModel item, string note, HighlightColor color)
+    {
+        _library.UpdateAnnotation(item.Annotation.Id, note, color);
+        int index = Annotations.IndexOf(item);
+        if (index >= 0)
+            Annotations[index] = new AnnotationItemViewModel(item.Annotation with { Note = note, Color = color });
+        RegionsChanged?.Invoke(this, EventArgs.Empty);
+    }
+
+    public void DeleteAnnotation(AnnotationItemViewModel item)
+    {
+        _library.DeleteAnnotation(item.Annotation.Id);
+        Annotations.Remove(item);
+        RegionsChanged?.Invoke(this, EventArgs.Empty);
+    }
+
+    [RelayCommand]
+    private void GoToAnnotation(AnnotationItemViewModel? item)
+    {
+        if (item is not null && ComicView.PageFromLocation(item.Annotation.Location) is { } page)
+            GoToPage(page);
+    }
+
+    [RelayCommand]
+    private void ToggleNotes() => IsNotesOpen = !IsNotesOpen;
+
+    public void Export(string path)
+    {
+        var all = Annotations.Select(a => a.Annotation).ToList();
+        string content = path.EndsWith(".csv", StringComparison.OrdinalIgnoreCase)
+            ? AnnotationExporter.ToCsv(Book, all)
+            : AnnotationExporter.ToMarkdown(Book, all);
+        System.IO.File.WriteAllText(path, content);
+    }
+
+    private void Insert(AnnotationItemViewModel item)
+    {
+        int index = 0;
+        while (index < Annotations.Count && Annotations[index].Annotation.Progress <= item.Annotation.Progress)
+            index++;
+        Annotations.Insert(index, item);
     }
 
     public Book Book { get; }

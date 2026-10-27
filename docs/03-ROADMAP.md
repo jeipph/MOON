@@ -71,11 +71,13 @@ Decisión (2026-10-27): **dos formas de meter libros**: "Añadir libros…" **co
 - **No usamos** Edge TTS "gratis": usa un servicio de Microsoft sin permiso oficial, puede dejar de funcionar y envía el texto del libro a internet.
 
 ## L6 — Subrayado y notas (≈5 h)
-- [ ] EPUB: seleccionar → resaltar (5 colores) → nota; reaplicar al abrir.
-- [ ] `AnnotationPanel`: lista, salto, editar, borrar.
-- [ ] Cómics: herramienta de rectángulo (`NormalizedRect`) con color y nota.
-- [ ] Marcadores.
-- [ ] Exportar a Markdown y CSV (con pruebas).
+- [x] EPUB: seleccionar → barra con 5 colores, "Nota…" y "Copiar" → subrayado con foliate-js (`Overlayer.highlight`); se redibuja en cada capítulo y al reabrir. Clic en un subrayado: editar nota, cambiar color o eliminar.
+- [x] Panel de notas (lector de libros y de cómics): lista en orden del libro, clic = ir, doble clic o menú = editar/eliminar.
+- [x] Cómics: botón "Marcar zona" → arrastrar un rectángulo (`NormalizedRect`) → nota y color; se dibuja sobre la página; clic en la zona = editar. (En webtoon no se marcan zonas.)
+- [x] Marcadores (libros y cómics).
+- [x] Exportar a Markdown (con datos para Obsidian) y CSV con `;` y BOM para Excel en español (con pruebas).
+- Tabla `annotations` (base de datos versión 4); se borran con su libro.
+- *Verificado por Claude (2026-10-27) con pruebas cortas: subrayar y marcador en Alice y siguen al reabrir; zona con nota en The Walking Dead. 55 pruebas. Falta que lo vea la persona.*
 
 ## L7 — Diccionario y vocabulario (≈4 h)
 - [ ] `IDictionarySource` + una primera fuente (decidir idioma y fuente; ver decisiones pendientes).
