@@ -66,7 +66,11 @@ public partial class App : Application
         var services = new ServiceCollection();
         services.AddSingleton<ISettingsStore>(_ =>
             new JsonSettingsStore(dataFolder is null ? null : Path.Combine(dataFolder, "settings.json")));
+        services.AddSingleton<SettingsService>();
         services.AddSingleton<ThemeService>();
+        services.AddSingleton(_ => new WebViewHost(
+            dataFolder is null ? WebViewHost.DefaultUserDataFolder : Path.Combine(dataFolder, "WebView2")));
+        services.AddSingleton<ReaderLauncher>();
         services.AddSingleton(_ => new LibraryService(
             new SqliteLibraryStore(dataFolder is null ? SqliteLibraryStore.DefaultPath : Path.Combine(dataFolder, "moon.db")),
             dataFolder is null ? LibraryService.DefaultManagedFolder : Path.Combine(dataFolder, "Biblioteca"),

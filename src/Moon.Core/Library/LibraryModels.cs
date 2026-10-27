@@ -28,7 +28,14 @@ public sealed record Book(
     bool HasCover,
     DateTime AddedAt,
     DateTime? LastOpenedAt,
-    double Progress);
+    double Progress)
+{
+    /// <summary>Dónde se quedó la lectura (CFI en EPUB). Null = nunca abierto.</summary>
+    public string? Location { get; init; }
+
+    /// <summary>Formatos que el lector de libros ya sabe abrir.</summary>
+    public bool CanBeRead => Format is BookFormat.Epub or BookFormat.Mobi or BookFormat.Azw3 or BookFormat.Fb2 or BookFormat.Cbz;
+}
 
 /// <summary>Un archivo encontrado al recorrer una carpeta. <paramref name="Modified"/> en UTC.</summary>
 public sealed record ScannedFile(long SourceId, string RelativePath, string FileKey, BookFormat Format, long Size, DateTime Modified);

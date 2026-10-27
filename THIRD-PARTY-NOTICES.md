@@ -1,0 +1,17 @@
+# Avisos de terceros — MOON
+
+MOON usa estas bibliotecas. Todas permiten usarlas en un programa propio; aquí se citan como piden sus licencias.
+
+| Biblioteca | Para qué | Licencia | Copyright |
+|---|---|---|---|
+| [foliate-js](https://github.com/johnfactotum/foliate-js) (commit `78914ae`, en `src/Moon.App/Web/foliate-js`) | Mostrar EPUB, MOBI, AZW3, FB2 y CBZ | MIT | © 2022 John Factotum |
+| [zip.js](https://github.com/gildas-lormeau/zip.js) (2.7.x, dentro de foliate-js `vendor/zip.js`) | Leer archivos ZIP en el lector | BSD-3-Clause | © 2023 Gildas Lormeau |
+| [fflate](https://github.com/101arrowz/fflate) (0.8.x, dentro de foliate-js `vendor/fflate.js`) | Descomprimir fuentes de libros Kindle | MIT | © 2023 Arjun Barrett |
+| [Microsoft.Web.WebView2](https://www.nuget.org/packages/Microsoft.Web.WebView2) 1.0.4314.35 | El "navegador" interno donde se ve la página | Licencia BSD de Microsoft (ver el paquete) | © Microsoft Corporation |
+| [Microsoft.Data.Sqlite](https://github.com/dotnet/efcore) 10.0.14 | Base de datos de la biblioteca | MIT | © .NET Foundation and Contributors |
+| [CommunityToolkit.Mvvm](https://github.com/CommunityToolkit/dotnet) 8.4.2 | MVVM | MIT | © .NET Foundation and Contributors |
+| [Microsoft.Extensions.DependencyInjection](https://github.com/dotnet/runtime) 10.0.14 | Unir las piezas de la app | MIT | © .NET Foundation and Contributors |
+
+Los textos completos de las licencias están en cada repositorio enlazado (foliate-js incluye el suyo en `Web/foliate-js/LICENSE`).
+
+Prototipos (carpeta `spikes/`, no forman parte de MOON): Piper (MIT), KokoroSharp (MIT; modelo Kokoro-82M Apache-2.0), Chatterbox (MIT, con marca de agua Perth de Resemble AI).

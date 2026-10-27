@@ -41,9 +41,30 @@
     <Thickness x:Key="Padding.CoverText">10</Thickness>
     <sys:Double x:Key="Size.Progress">3</sys:Double>
     <sys:Double x:Key="Size.ScrollBar">8</sys:Double>
+    <sys:Double x:Key="Size.SliderThumb">12</sys:Double>
+    <sys:Double x:Key="Size.SliderHit">16</sys:Double>
     <CornerRadius x:Key="Radius.ScrollBar">4</CornerRadius>
     <sys:Double x:Key="Opacity.Unavailable">0.4</sys:Double>
     <Thickness x:Key="Space.Status">0,0,0,12</Thickness>
+
+    <!-- Lector: colores de la página (los mismos que usa Web/reader.js; no dependen del tema de la ventana) -->
+    <SolidColorBrush x:Key="Brush.Page.Light" Color="#FFFFFF" />
+    <SolidColorBrush x:Key="Brush.Page.Sepia" Color="#F4ECD8" />
+    <SolidColorBrush x:Key="Brush.Page.Dark" Color="#121212" />
+    <SolidColorBrush x:Key="Brush.PageText.Light" Color="#1A1A1A" />
+    <SolidColorBrush x:Key="Brush.PageText.Sepia" Color="#3B2F1E" />
+    <SolidColorBrush x:Key="Brush.PageText.Dark" Color="#E3E3E3" />
+    <sys:Double x:Key="Size.Reader.Width">1000</sys:Double>
+    <sys:Double x:Key="Size.Reader.Height">780</sys:Double>
+    <GridLength x:Key="Size.PageArrow">56</GridLength>
+    <GridLength x:Key="Size.ReaderBottom">44</GridLength>
+    <sys:Double x:Key="Size.SettingsPanel">300</sys:Double>
+    <Thickness x:Key="Padding.Popup">16</Thickness>
+    <Thickness x:Key="Padding.TocItem">10,6,10,6</Thickness>
+    <Thickness x:Key="Space.SettingsRow">0,0,0,14</Thickness>
+    <Thickness x:Key="Space.ChoiceGap">0,0,6,0</Thickness>
+    <sys:Double x:Key="Size.TocIndent">14</sys:Double>
+    <sys:Double x:Key="FontSize.PageArrow">20</sys:Double>
 
     <!-- Letras -->
     <FontFamily x:Key="Font.Main">Segoe UI Variable, Segoe UI</FontFamily>

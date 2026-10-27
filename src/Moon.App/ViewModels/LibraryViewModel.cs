@@ -18,18 +18,22 @@ public sealed partial class LibraryViewModel : ObservableObject, IDisposable
     private readonly LibraryService _library;
     private readonly LibraryWatcher _watcher;
     private readonly LibraryDialogs _dialogs;
+    private readonly ReaderLauncher _reader;
     private readonly SemaphoreSlim _busy = new(1, 1);
     private readonly int _coverDecodeWidth;
     private List<BookItemViewModel> _allBooks = [];
     private bool _syncPending;
 
-    public LibraryViewModel(LibraryService library, LibraryWatcher watcher, LibraryDialogs dialogs)
+    public LibraryViewModel(LibraryService library, LibraryWatcher watcher, LibraryDialogs dialogs, ReaderLauncher reader)
     {
         _library = library;
         _watcher = watcher;
         _dialogs = dialogs;
+        _reader = reader;
         _coverDecodeWidth = Application.Current.TryFindResource("Cover.DecodeWidth") as int? ?? 300;
         _watcher.Changed += (_, _) => Application.Current.Dispatcher.BeginInvoke(RequestSync);
+        // Al cerrar un libro, su progreso y "Continuar leyendo" se ponen al día.
+        _reader.ReaderClosed += (_, _) => Populate();
     }
 
     public ObservableCollection<SourceItemViewModel> Sources { get; } = [];
@@ -138,8 +142,19 @@ public sealed partial class LibraryViewModel : ObservableObject, IDisposable
             Status = $"\"{book.Title}\" está en un disco desconectado. Conéctalo para leerlo.";
             return;
         }
-        // El lector de EPUB llega en L5; los cómics, después.
-        Status = $"Pronto podrás leer \"{book.Title}\" aquí mismo (el lector llega en el próximo paso).";
+        string? path = _library.FullPath(book.Book);
+        if (path is null || !File.Exists(path))
+        {
+            Status = $"No se encuentra el archivo de \"{book.Title}\". Pulsa F5 o espera a que MOON revise la carpeta.";
+            return;
+        }
+        if (!book.Book.CanBeRead)
+        {
+            // CBR/CB7 llegan con los cómics (L4) y PDF en L10.
+            Status = $"MOON todavía no sabe abrir archivos {book.FormatLabel}. Llegará pronto.";
+            return;
+        }
+        _reader.Open(book.Book, path);
     }
 
     [RelayCommand]
@@ -237,13 +252,22 @@ public sealed partial class LibraryViewModel : ObservableObject, IDisposable
             .Select(b => new BookItemViewModel(b, paths.GetValueOrDefault(b.SourceId) is not null, _library.CoverPath(b.Id), _coverDecodeWidth))
             .ToList();
 
-        long? selectedId = SelectedSource?.Source?.Id;
-        bool wasAll = SelectedSource is null || SelectedSource.Source is null;
+        // Se recuerda qué fila estaba elegida para no perderla al repintar.
+        SourceItemViewModel? previous = SelectedSource;
+        int started = LibraryService.ContinueReading(books).Count();
         Sources.Clear();
-        Sources.Add(SourceItemViewModel.All(books.Count));
+        if (started > 0)
+            Sources.Add(SourceItemViewModel.ContinueReading(started));
+        SourceItemViewModel all = SourceItemViewModel.All(books.Count);
+        Sources.Add(all);
         foreach (LibrarySource source in sources)
             Sources.Add(SourceItemViewModel.From(source, paths.GetValueOrDefault(source.Id), books.Count(b => b.SourceId == source.Id)));
-        SelectedSource = wasAll ? Sources[0] : Sources.FirstOrDefault(s => s.Source?.Id == selectedId) ?? Sources[0];
+        SelectedSource = previous switch
+        {
+            { IsContinueReading: true } => Sources.FirstOrDefault(s => s.IsContinueReading) ?? all,
+            { Source: { } source } => Sources.FirstOrDefault(s => s.Source?.Id == source.Id) ?? all,
+            _ => all,
+        };
 
         IsLibraryEmpty = books.Count == 0;
         _watcher.Watch(paths.Values.OfType<string>());
@@ -254,7 +278,13 @@ public sealed partial class LibraryViewModel : ObservableObject, IDisposable
     {
         long? sourceId = SelectedSource?.Source?.Id;
         string search = SearchText.Trim();
-        var visible = _allBooks.Where(b =>
+        IEnumerable<BookItemViewModel> pool = _allBooks;
+        if (SelectedSource?.IsContinueReading == true)
+        {
+            var order = LibraryService.ContinueReading(_allBooks.Select(b => b.Book)).Select(b => b.Id).ToList();
+            pool = order.Select(id => _allBooks.First(b => b.Book.Id == id));
+        }
+        var visible = pool.Where(b =>
             (sourceId is null || b.Book.SourceId == sourceId) &&
             (search.Length == 0 ||
              b.Title.Contains(search, StringComparison.CurrentCultureIgnoreCase) ||

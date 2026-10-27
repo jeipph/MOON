@@ -1,0 +1,213 @@
+<Window x:Class="Moon.App.Windows.ReaderWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:vm="clr-namespace:Moon.App.ViewModels"
+        xmlns:conv="clr-namespace:Moon.App.Converters"
+        xmlns:wv2="clr-namespace:Microsoft.Web.WebView2.Wpf;assembly=Microsoft.Web.WebView2.Wpf"
+        mc:Ignorable="d"
+        d:DataContext="{d:DesignInstance vm:ReaderViewModel}"
+        Title="{Binding Title}"
+        Icon="/Assets/moon.ico"
+        Width="{DynamicResource Size.Reader.Width}"
+        Height="{DynamicResource Size.Reader.Height}"
+        MinWidth="{DynamicResource Size.Window.MinWidth}"
+        MinHeight="{DynamicResource Size.Window.MinHeight}"
+        WindowStartupLocation="CenterScreen"
+        Background="{DynamicResource Brush.Background}"
+        Foreground="{DynamicResource Brush.Text}"
+        FontFamily="{DynamicResource Font.Main}"
+        FontSize="{DynamicResource FontSize.Body}"
+        PreviewKeyDown="OnPreviewKeyDown">
+    <Window.Resources>
+        <BooleanToVisibilityConverter x:Key="Visible" />
+        <conv:EnumEqualsConverter x:Key="Is" />
+    </Window.Resources>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition x:Name="TopRow" Height="{DynamicResource Size.TopBar}" />
+            <RowDefinition Height="*" />
+            <RowDefinition x:Name="BottomRow" Height="{DynamicResource Size.ReaderBottom}" />
+        </Grid.RowDefinitions>
+
+        <!-- Barra superior: índice, título y capítulo, opciones de la página, pantalla completa -->
+        <Border Grid.Row="0"
+                Padding="{DynamicResource Padding.TopBar}"
+                BorderBrush="{DynamicResource Brush.Border}"
+                BorderThickness="0,0,0,1">
+            <DockPanel>
+                <ToggleButton DockPanel.Dock="Left"
+                              Style="{StaticResource IconToggle}"
+                              AutomationProperties.Name="Índice"
+                              ToolTip="Índice"
+                              IsChecked="{Binding IsTocOpen}"
+                              Content="&#xE8FD;" />
+                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+                    <ToggleButton x:Name="SettingsButton"
+                                  Style="{StaticResource IconToggle}"
+                                  AutomationProperties.Name="Opciones de lectura"
+                                  ToolTip="Letra, márgenes y color de la página"
+                                  Content="&#xE8D2;" />
+                    <Button Style="{StaticResource IconButton}"
+                            AutomationProperties.Name="Pantalla completa"
+                            ToolTip="Pantalla completa (F11)"
+                            Click="OnFullScreenClick"
+                            Content="&#xE740;" />
+                </StackPanel>
+                <StackPanel Margin="{DynamicResource Space.Gap}" VerticalAlignment="Center">
+                    <TextBlock Text="{Binding Title}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                    <TextBlock Text="{Binding Chapter}"
+                               FontSize="{DynamicResource FontSize.Small}"
+                               Foreground="{DynamicResource Brush.TextMuted}"
+                               TextTrimming="CharacterEllipsis" />
+                </StackPanel>
+            </DockPanel>
+        </Border>
+
+        <!-- Opciones de la página (se abre con el botón Aa) -->
+        <Popup Grid.Row="0"
+               PlacementTarget="{Binding ElementName=SettingsButton}"
+               Placement="Bottom"
+               HorizontalOffset="-260"
+               StaysOpen="False"
+               AllowsTransparency="True"
+               IsOpen="{Binding IsChecked, ElementName=SettingsButton}">
+            <Border Width="{DynamicResource Size.SettingsPanel}"
+                    Padding="{DynamicResource Padding.Popup}"
+                    Background="{DynamicResource Brush.Background}"
+                    BorderBrush="{DynamicResource Brush.Border}"
+                    BorderThickness="1"
+                    CornerRadius="{DynamicResource Radius.Control}"
+                    TextElement.Foreground="{DynamicResource Brush.Text}"
+                    TextElement.FontFamily="{DynamicResource Font.Main}">
+                <StackPanel>
+                    <TextBlock Text="Tamaño de letra" Foreground="{DynamicResource Brush.TextMuted}" FontSize="{DynamicResource FontSize.Small}" />
+                    <StackPanel Orientation="Horizontal" Margin="{DynamicResource Space.SettingsRow}">
+                        <Button Style="{StaticResource IconButton}" AutomationProperties.Name="Letra más pequeña" ToolTip="Más pequeña (Ctrl −)" Command="{Binding SmallerTextCommand}" Content="&#xE738;" />
+                        <Button Style="{StaticResource ChipButton}" AutomationProperties.Name="Tamaño de letra" ToolTip="Volver al 100 % (Ctrl 0)" Command="{Binding ResetTextCommand}" Content="{Binding FontSizeText}" VerticalAlignment="Center" />
+                        <Button Style="{StaticResource IconButton}" AutomationProperties.Name="Letra más grande" ToolTip="Más grande (Ctrl +)" Command="{Binding BiggerTextCommand}" Content="&#xE710;" />
+                    </StackPanel>
+
+                    <TextBlock Text="Letra" Foreground="{DynamicResource Brush.TextMuted}" FontSize="{DynamicResource FontSize.Small}" />
+                    <WrapPanel Margin="{DynamicResource Space.SettingsRow}">
+                        <RadioButton Style="{StaticResource ChoiceChip}" GroupName="Font" Content="La del libro" IsChecked="{Binding Font, Converter={StaticResource Is}, ConverterParameter=Original}" />
+                        <RadioButton Style="{StaticResource ChoiceChip}" GroupName="Font" Content="Con serifa" IsChecked="{Binding Font, Converter={StaticResource Is}, ConverterParameter=Serif}" />
+                        <RadioButton Style="{StaticResource ChoiceChip}" GroupName="Font" Content="Sin serifa" IsChecked="{Binding Font, Converter={StaticResource Is}, ConverterParameter=Sans}" />
+                    </WrapPanel>
+
+                    <TextBlock Text="Márgenes" Foreground="{DynamicResource Brush.TextMuted}" FontSize="{DynamicResource FontSize.Small}" />
+                    <WrapPanel Margin="{DynamicResource Space.SettingsRow}">
+                        <RadioButton Style="{StaticResource ChoiceChip}" GroupName="Margins" Content="Estrechos" IsChecked="{Binding Margins, Converter={StaticResource Is}, ConverterParameter=Narrow}" />
+                        <RadioButton Style="{StaticResource ChoiceChip}" GroupName="Margins" Content="Normales" IsChecked="{Binding Margins, Converter={StaticResource Is}, ConverterParameter=Normal}" />
+                        <RadioButton Style="{StaticResource ChoiceChip}" GroupName="Margins" Content="Anchos" IsChecked="{Binding Margins, Converter={StaticResource Is}, ConverterParameter=Wide}" />
+                    </WrapPanel>
+
+                    <TextBlock Text="Página" Foreground="{DynamicResource Brush.TextMuted}" FontSize="{DynamicResource FontSize.Small}" />
+                    <WrapPanel Margin="{DynamicResource Space.SettingsRow}">
+                        <RadioButton Style="{StaticResource ChoiceChip}" GroupName="Page" Content="Como MOON" IsChecked="{Binding PageTheme, Converter={StaticResource Is}, ConverterParameter=Auto}" />
+                        <RadioButton Style="{StaticResource ChoiceChip}" GroupName="Page" Content="Clara" IsChecked="{Binding PageTheme, Converter={StaticResource Is}, ConverterParameter=Light}" />
+                        <RadioButton Style="{StaticResource ChoiceChip}" GroupName="Page" Content="Sepia" IsChecked="{Binding PageTheme, Converter={StaticResource Is}, ConverterParameter=Sepia}" />
+                        <RadioButton Style="{StaticResource ChoiceChip}" GroupName="Page" Content="Oscura" IsChecked="{Binding PageTheme, Converter={StaticResource Is}, ConverterParameter=Dark}" />
+                    </WrapPanel>
+
+                    <TextBlock Text="Modo" Foreground="{DynamicResource Brush.TextMuted}" FontSize="{DynamicResource FontSize.Small}" />
+                    <WrapPanel>
+                        <RadioButton Style="{StaticResource ChoiceChip}" GroupName="Flow" Content="Páginas" IsChecked="{Binding Flow, Converter={StaticResource Is}, ConverterParameter=Paginated}" />
+                        <RadioButton Style="{StaticResource ChoiceChip}" GroupName="Flow" Content="Continuo" IsChecked="{Binding Flow, Converter={StaticResource Is}, ConverterParameter=Scrolled}" />
+                    </WrapPanel>
+                </StackPanel>
+            </Border>
+        </Popup>
+
+        <Grid Grid.Row="1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition x:Name="LeftArrowColumn" Width="{DynamicResource Size.PageArrow}" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition x:Name="RightArrowColumn" Width="{DynamicResource Size.PageArrow}" />
+            </Grid.ColumnDefinitions>
+
+            <!-- Índice -->
+            <Border Grid.Column="0"
+                    Width="{DynamicResource Size.SettingsPanel}"
+                    BorderBrush="{DynamicResource Brush.Border}"
+                    BorderThickness="0,0,1,0"
+                    Visibility="{Binding IsTocOpen, Converter={StaticResource Visible}}">
+                <ListBox x:Name="TocList"
+                         AutomationProperties.Name="Capítulos"
+                         ItemsSource="{Binding Toc}"
+                         Background="Transparent"
+                         BorderThickness="0"
+                         Padding="{DynamicResource Padding.Sidebar}"
+                         ItemContainerStyle="{StaticResource SidebarItem}"
+                         ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                         SelectionChanged="OnTocSelectionChanged"
+                         MouseLeftButtonUp="OnTocClicked">
+                    <ListBox.ItemTemplate>
+                        <DataTemplate DataType="{x:Type vm:TocEntry}">
+                            <TextBlock Text="{Binding Label}" TextWrapping="Wrap" Tag="{Binding Depth}" Loaded="OnTocItemLoaded" />
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+            </Border>
+
+            <!-- Flechas para pasar página (también ← → en el teclado y la rueda del ratón) -->
+            <Button x:Name="PreviousButton"
+                    Grid.Column="1"
+                    Style="{StaticResource IconButton}"
+                    Width="Auto" Height="Auto"
+                    HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
+                    FontSize="{DynamicResource FontSize.PageArrow}"
+                    AutomationProperties.Name="Página anterior"
+                    Command="{Binding PreviousCommand}"
+                    Content="&#xE76B;" />
+            <Border x:Name="PageArea" Grid.Column="2">
+                <Grid>
+                    <wv2:WebView2 x:Name="Page" />
+                    <TextBlock HorizontalAlignment="Center"
+                               VerticalAlignment="Center"
+                               TextWrapping="Wrap"
+                               TextAlignment="Center"
+                               Foreground="{DynamicResource Brush.TextMuted}"
+                               Text="{Binding Error}"
+                               Visibility="Collapsed"
+                               x:Name="ErrorText" />
+                </Grid>
+            </Border>
+            <Button x:Name="NextButton"
+                    Grid.Column="3"
+                    Style="{StaticResource IconButton}"
+                    Width="Auto" Height="Auto"
+                    HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
+                    FontSize="{DynamicResource FontSize.PageArrow}"
+                    AutomationProperties.Name="Página siguiente"
+                    Command="{Binding NextCommand}"
+                    Content="&#xE76C;" />
+        </Grid>
+
+        <!-- Progreso: arrastrar para saltar a otra parte del libro -->
+        <Border Grid.Row="2"
+                Padding="{DynamicResource Padding.TopBar}"
+                BorderBrush="{DynamicResource Brush.Border}"
+                BorderThickness="0,1,0,0">
+            <DockPanel VerticalAlignment="Center">
+                <TextBlock DockPanel.Dock="Right"
+                           Margin="{DynamicResource Space.Gap}"
+                           MinWidth="44"
+                           TextAlignment="Right"
+                           FontSize="{DynamicResource FontSize.Small}"
+                           Foreground="{DynamicResource Brush.TextMuted}"
+                           AutomationProperties.AutomationId="Progreso"
+                           Text="{Binding ProgressText}" />
+                <Slider x:Name="ProgressSlider"
+                        Style="{StaticResource ProgressSlider}"
+                        AutomationProperties.Name="Posición en el libro"
+                        Value="{Binding Progress, Mode=OneWay}"
+                        Thumb.DragCompleted="OnProgressDragCompleted"
+                        PreviewMouseLeftButtonUp="OnProgressClicked" />
+            </DockPanel>
+        </Border>
+    </Grid>
+</Window>

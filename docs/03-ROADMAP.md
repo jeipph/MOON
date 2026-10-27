@@ -11,9 +11,9 @@ Marca `[x]` cuando esté terminado **y verificado por la persona usuaria**. Un h
 ## L0 — Prototipos (spikes) (≈4–5 h en total)
 Experimentos pequeños y desechables, en `spikes/`. Documentar el resultado aquí.
 - [ ] **S1 — OCR de Windows desde WPF sin empaquetar.** Leer una imagen con texto en inglés y otra en japonés. ¿Funciona? ¿Qué idiomas hay instalados? ¿Hace falta MSIX? *Resultado:* ____
-- [ ] **S2 — EPUB en WebView2.** Cargar un EPUB de dominio público, seleccionar texto, recibir en C# el texto y el CFI, y volver a resaltarlo. *Resultado:* ____
+- [x] **S2 — EPUB en WebView2.** *Resultado (2026-10-27):* funciona con **foliate-js** (MIT) en WebView2 con hosts virtuales `app.moon` y `book.moon`; posición por CFI, índice, páginas y desplazamiento. Falta probar selección de texto y resaltado (L6).
 - [ ] **S3 — Webtoon.** Cargar 200 imágenes grandes en un `ScrollViewer` virtualizado; medir RAM. *Resultado:* ____
-- [ ] **S5 — Voces.** Leer el mismo párrafo (inglés y español) con: voces de Windows (`Windows.Media.SpeechSynthesis`), **Piper** y **Kokoro** (KokoroSharp). Medir: segundos hasta que empieza a hablar, velocidad frente a tiempo real, RAM, tamaño de descarga, y si se pueden saber los límites de cada palabra para resaltarla. Escuchar y elegir. *Resultado (2026-10-27, CPU, `spikes/S5-voces`):* **Piper** genera ~13 s de audio en 0,7–2 s (con carga del modelo), 60–110 MB por voz. **Kokoro** (KokoroSharp 0.8.4): carga 33 s la primera vez (incluye descarga de ~320 MB), luego 2–4 s por ~12 s de audio, **~1,4 GB de RAM**. Voz de Windows: Helena (es-ES), Sabina (es-MX), Zira (en-US). Licencias de voces Piper: claude-high Apache-2.0, ald Unlicense, davefx CC0, sharvard CC-BY 3.0, lessac (inglés) licencia de investigación de Blizzard 2013 → evitarla. **A la persona no le gustó ninguna.** **Chatterbox Multilingual** (MIT, Python + PyTorch 2.8 cu128 con `uv`; chatterbox-tts 0.1.7 pide torch 2.6, que no soporta RTX 50, se forzó 2.8; falta `setuptools<81` por `pkg_resources`): RTX 5070, carga 10 s, ~10 s de audio en 5–13 s (≈ tiempo real), 3,9 GB de VRAM, clona una voz con ~14 s de referencia. Algunas muestras salen más cortas que el texto (posible salto de frases): vigilar. Elección: **Chatterbox con voz clonada** de un audio que elige la persona (la voz de referencia no se distribuye con MOON). Fragmento elegido: ____
+- [ ] **S5 — Voces.** Leer el mismo párrafo (inglés y español) con: voces de Windows (`Windows.Media.SpeechSynthesis`), **Piper** y **Kokoro** (KokoroSharp). Medir: segundos hasta que empieza a hablar, velocidad frente a tiempo real, RAM, tamaño de descarga, y si se pueden saber los límites de cada palabra para resaltarla. Escuchar y elegir. *Resultado (2026-10-27, CPU, `spikes/S5-voces`):* **Piper** genera ~13 s de audio en 0,7–2 s (con carga del modelo), 60–110 MB por voz. **Kokoro** (KokoroSharp 0.8.4): carga 33 s la primera vez (incluye descarga de ~320 MB), luego 2–4 s por ~12 s de audio, **~1,4 GB de RAM**. Voz de Windows: Helena (es-ES), Sabina (es-MX), Zira (en-US). Licencias de voces Piper: claude-high Apache-2.0, ald Unlicense, davefx CC0, sharvard CC-BY 3.0, lessac (inglés) licencia de investigación de Blizzard 2013 → evitarla. **A la persona no le gustó ninguna.** **Chatterbox Multilingual** (MIT, Python + PyTorch 2.8 cu128 con `uv`; chatterbox-tts 0.1.7 pide torch 2.6, que no soporta RTX 50, se forzó 2.8; falta `setuptools<81` por `pkg_resources`): RTX 5070, carga 10 s, ~10 s de audio en 5–13 s (≈ tiempo real), 3,9 GB de VRAM, clona una voz con ~14 s de referencia. Algunas muestras salen más cortas que el texto (posible salto de frases): vigilar. Elección: **Chatterbox con voz clonada** de un audio que elige la persona (la voz de referencia no se distribuye con MOON). La persona aprobó la voz clonada de "VOZ PARA LIBROS" (2026-10-27) y quiere poder añadir más voces en el futuro.
 - [ ] **S4 — Búsqueda inversa.** Copiar un recorte al portapapeles y abrir Google Lens/TinEye/SauceNAO. ¿Cuál es el flujo menos incómodo? *Resultado:* ____
 
 ## L1 — Esqueleto (≈1 h)
@@ -48,17 +48,19 @@ Decisión (2026-10-27): **dos formas de meter libros**: "Añadir libros…" **co
 - [ ] Soporte RAR/CB7 con SharpCompress; mensaje claro si un archivo está corrupto o cifrado.
 
 ## L5 — Libros EPUB (≈5 h) *(según resultado de S2)*
-- [ ] `BookReaderView` con WebView2 y el lector JS.
-- [ ] Paginación o desplazamiento; tamaño/tipo de letra, márgenes, tema (claro/oscuro/sepia).
-- [ ] Progreso por CFI en SQLite; índice (tabla de contenidos).
-- [ ] Seguridad de WebView2 (sin navegación externa).
+- [x] `ReaderWindow` (una ventana por libro) con WebView2 y `Web/reader.html` + `reader.js` + foliate-js. Abre también MOBI, AZW3, FB2 (sin DRM) y CBZ.
+- [x] Páginas o continuo; tamaño de letra (70–200 %, Ctrl +/−/0), letra del libro / con serifa / sin serifa, márgenes, página como MOON / clara / sepia / oscura. Iguales para todos los libros (`settings.json` → `Reader`).
+- [x] Progreso por CFI en SQLite (columna `location`, base de datos versión 2); índice con el capítulo actual marcado; barra de progreso para saltar; "Continuar leyendo" en la biblioteca.
+- [x] Teclas: ← → Re Pág Av Pág Espacio, rueda del ratón, F11 / Esc pantalla completa.
+- [x] Seguridad: CSP bloquea los scripts del libro; no se navega fuera de `app.moon`; enlaces de internet solo con confirmación y en el navegador.
+- *Verificado por Claude (2026-10-27): 34 pruebas; prueba con clics y teclas reales: abrir con doble clic, pasar páginas, opciones (sepia, 120 %, sin serifa, oscura), índice, pantalla completa, cerrar y reabrir en la misma posición. Falta que lo vea la persona. Pendiente de probar: un EPUB con scripts (deben quedar bloqueados).*
 
 ## L5b — Lectura en voz alta (≈6 h) *(según resultado de S5; gratis y sin internet)*
-- [ ] `ITtsEngine` con tres motores, todos en el PC:
-  - **Voces de Windows** (ya instaladas, sin descarga; suenan más robóticas). Por defecto.
-  - **Piper** (voces neuronales pequeñas, ~60 MB por voz, muy rápidas en CPU; es_ES, es_MX, inglés). Revisar la licencia de **cada voz** en su MODEL_CARD.
-  - **Kokoro** (KokoroSharp: código MIT, modelo Apache-2.0, ~320 MB; la mejor calidad en inglés, español aceptable).
-  - Las voces neuronales se descargan solo si la persona las elige ("Descargar voz…").
+**Decisión (2026-10-27):** voz principal **Chatterbox** clonando un audio elegido por la persona (servicio local en Python, solo en PCs con tarjeta gráfica). Sin tarjeta gráfica: voces de Windows. **Varias voces:** carpeta de voces (`%APPDATA%\MOON\voces`, un audio de 10–15 s por voz) y elegir voz por libro. Las voces de referencia nunca se incluyen en el instalador.
+- [ ] `ITtsEngine` con estos motores, todos en el PC:
+  - **Chatterbox** (servicio local en Python; ver `spikes/S5-voces/chatterbox`).
+  - **Voces de Windows** (ya instaladas, sin descarga; suenan más robóticas). Si no hay tarjeta gráfica.
+  - (Descartados por ahora: Piper y Kokoro, no gustaron.)
 - [ ] Leer frase a frase desde la posición actual; generar la siguiente frase mientras suena la actual (sin pausas).
 - [ ] **Resaltar** la frase (y si el motor lo permite, la palabra) que se está leyendo; pasar de página sola.
 - [ ] Velocidad 0,5×–3×, elegir voz por idioma del libro, ⏮ frase anterior / ⏭ siguiente.

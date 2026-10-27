@@ -9,7 +9,7 @@ namespace Moon.Core.Library;
 /// </summary>
 public sealed class SqliteLibraryStore
 {
-    private const int SchemaVersion = 1;
+    private const int SchemaVersion = 2;
     private readonly string _connectionString;
 
     public SqliteLibraryStore(string databasePath)
@@ -29,6 +29,16 @@ public sealed class SqliteLibraryStore
         if (version >= SchemaVersion)
             return;
 
+        // Cada versión añade lo suyo; una base de datos vieja pasa por todos los pasos que le falten.
+        if (version < 1)
+            CreateVersion1(connection);
+        if (version < 2)
+            Execute(connection, "ALTER TABLE books ADD COLUMN location TEXT"); // posición exacta (CFI) en el libro
+        Execute(connection, $"PRAGMA user_version = {SchemaVersion}");
+    }
+
+    private static void CreateVersion1(SqliteConnection connection)
+    {
         Execute(connection, """
             CREATE TABLE IF NOT EXISTS sources (
                 id            INTEGER PRIMARY KEY,
@@ -55,7 +65,6 @@ public sealed class SqliteLibraryStore
             );
             CREATE INDEX IF NOT EXISTS books_file_key ON books(file_key);
             """);
-        Execute(connection, $"PRAGMA user_version = {SchemaVersion}");
     }
 
     // ---- Carpetas ----
@@ -101,7 +110,7 @@ public sealed class SqliteLibraryStore
         using SqliteCommand command = connection.CreateCommand();
         command.CommandText = """
             SELECT id, source_id, relative_path, file_key, format, size, modified, title, author, series,
-                   has_cover, added_at, last_opened_at, progress
+                   has_cover, added_at, last_opened_at, progress, location
             FROM books ORDER BY title COLLATE NOCASE
             """;
         using SqliteDataReader reader = command.ExecuteReader();
@@ -113,7 +122,10 @@ public sealed class SqliteLibraryStore
                 Enum.Parse<BookFormat>(reader.GetString(4)), reader.GetInt64(5), ParseUtc(reader.GetString(6)),
                 reader.GetString(7), reader.IsDBNull(8) ? null : reader.GetString(8), reader.IsDBNull(9) ? null : reader.GetString(9),
                 reader.GetInt64(10) != 0, ParseDate(reader.GetString(11))!.Value,
-                reader.IsDBNull(12) ? null : ParseDate(reader.GetString(12)), reader.GetDouble(13)));
+                reader.IsDBNull(12) ? null : ParseDate(reader.GetString(12)), reader.GetDouble(13))
+            {
+                Location = reader.IsDBNull(14) ? null : reader.GetString(14),
+            });
         }
         return books;
     }
@@ -165,11 +177,15 @@ public sealed class SqliteLibraryStore
         Execute(connection, "DELETE FROM books WHERE id = $id", ("$id", id));
     }
 
-    public void SetProgress(long id, double progress, DateTime openedAt)
+    /// <param name="location">Posición exacta para volver a ella (CFI en EPUB); null = no cambiarla.</param>
+    public void SetProgress(long id, double progress, string? location, DateTime openedAt)
     {
         using SqliteConnection connection = Open();
-        Execute(connection, "UPDATE books SET progress = $progress, last_opened_at = $opened WHERE id = $id",
-            ("$progress", Math.Clamp(progress, 0, 1)), ("$opened", FormatDate(openedAt)), ("$id", id));
+        Execute(connection, """
+            UPDATE books SET progress = $progress, location = COALESCE($location, location), last_opened_at = $opened
+            WHERE id = $id
+            """,
+            ("$progress", Math.Clamp(progress, 0, 1)), ("$location", location), ("$opened", FormatDate(openedAt)), ("$id", id));
     }
 
     // ---- Ayudas ----

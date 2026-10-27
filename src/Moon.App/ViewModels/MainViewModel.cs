@@ -1,7 +1,6 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Moon.App.Services;
-using Moon.Core.Abstractions;
 using Moon.Core.Models;
 
 namespace Moon.App.ViewModels;
@@ -9,22 +8,20 @@ namespace Moon.App.ViewModels;
 /// <summary>Ventana principal: la biblioteca y el tema.</summary>
 public sealed partial class MainViewModel : ObservableObject
 {
-    private readonly ISettingsStore _store;
+    private readonly SettingsService _settings;
     private readonly ThemeService _themes;
-    private AppSettings _settings;
 
-    public MainViewModel(ISettingsStore store, ThemeService themes, LibraryViewModel library)
+    public MainViewModel(SettingsService settings, ThemeService themes, LibraryViewModel library)
     {
-        _store = store;
+        _settings = settings;
         _themes = themes;
         Library = library;
-        _settings = store.Load();
-        _themes.Apply(_settings.Theme);
+        _themes.Apply(Theme);
     }
 
     public LibraryViewModel Library { get; }
 
-    public AppTheme Theme => _settings.Theme;
+    public AppTheme Theme => _settings.Current.Theme;
 
     /// <summary>Texto del botón de tema: muestra el tema actual.</summary>
     public string ThemeLabel => Theme switch
@@ -44,9 +41,8 @@ public sealed partial class MainViewModel : ObservableObject
             AppTheme.Dark => AppTheme.Light,
             _ => AppTheme.System,
         };
-        _settings = _settings with { Theme = next };
+        _settings.Update(s => s with { Theme = next });
         _themes.Apply(next);
-        _store.Save(_settings);
         OnPropertyChanged(nameof(Theme));
         OnPropertyChanged(nameof(ThemeLabel));
     }

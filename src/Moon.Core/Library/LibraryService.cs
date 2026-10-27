@@ -150,7 +150,14 @@ public sealed class LibraryService
         _store.RemoveBook(book.Id);
     }
 
-    public void SetProgress(long bookId, double progress) => _store.SetProgress(bookId, progress, DateTime.Now);
+    /// <summary>Guarda por dónde va la lectura (y marca el libro como abierto ahora).</summary>
+    public void SetProgress(long bookId, double progress, string? location = null) =>
+        _store.SetProgress(bookId, progress, location, DateTime.Now);
+
+    /// <summary>"Continuar leyendo": abiertos y sin terminar, el último primero.</summary>
+    public static IEnumerable<Book> ContinueReading(IEnumerable<Book> books) =>
+        books.Where(b => b.LastOpenedAt is not null && b.Progress < 0.995)
+             .OrderByDescending(b => b.LastOpenedAt);
 
     /// <summary>Recorre las carpetas conectadas y pone la biblioteca al día.</summary>
     public SyncResult Sync(IProgress<string>? progress = null, long? onlySource = null)

@@ -153,6 +153,67 @@ public sealed class LibraryServiceTests : IDisposable
     }
 
     [Fact]
+    public void ReadingPosition_IsSaved_AndKeptWhenOnlyProgressChanges()
+    {
+        TestBooks.Epub(External, "uno.epub");
+        LibraryService library = NewService();
+        library.Link(External);
+        long id = Assert.Single(library.Books).Id;
+
+        library.SetProgress(id, 0.3, "epubcfi(/6/8!/4/2/10)");
+        library.SetProgress(id, 0.31); // sin posición nueva: se conserva la anterior
+
+        Book book = Assert.Single(NewService().Books);
+        Assert.Equal("epubcfi(/6/8!/4/2/10)", book.Location);
+        Assert.Equal(0.31, book.Progress, precision: 3);
+        Assert.NotNull(book.LastOpenedAt);
+    }
+
+    [Fact]
+    public void OldDatabase_IsUpgraded_WithoutLosingBooks()
+    {
+        // Base de datos de la versión 1 (antes de guardar la posición exacta).
+        Directory.CreateDirectory(_root);
+        string path = Path.Combine(_root, "moon.db");
+        using (var connection = new SqliteConnection($"Data Source={path}"))
+        {
+            connection.Open();
+            using SqliteCommand command = connection.CreateCommand();
+            command.CommandText = """
+                CREATE TABLE sources (id INTEGER PRIMARY KEY, path TEXT NOT NULL, kind TEXT NOT NULL, volume_label TEXT);
+                CREATE TABLE books (id INTEGER PRIMARY KEY, source_id INTEGER NOT NULL, relative_path TEXT NOT NULL,
+                    file_key TEXT NOT NULL, format TEXT NOT NULL, size INTEGER NOT NULL, modified TEXT NOT NULL,
+                    title TEXT NOT NULL, author TEXT, series TEXT, has_cover INTEGER NOT NULL DEFAULT 0,
+                    added_at TEXT NOT NULL, last_opened_at TEXT, progress REAL NOT NULL DEFAULT 0);
+                INSERT INTO sources VALUES (1, 'C:\x', 'Linked', NULL);
+                INSERT INTO books (source_id, relative_path, file_key, format, size, modified, title, added_at, progress)
+                VALUES (1, 'a.epub', 'K', 'Epub', 1, '2026-01-01T00:00:00.0000000Z', 'Viejo', '2026-01-01T00:00:00.0000000Z', 0.5);
+                PRAGMA user_version = 1;
+                """;
+            command.ExecuteNonQuery();
+        }
+
+        Book book = Assert.Single(new SqliteLibraryStore(path).GetBooks());
+
+        Assert.Equal("Viejo", book.Title);
+        Assert.Equal(0.5, book.Progress, precision: 3);
+        Assert.Null(book.Location);
+    }
+
+    [Fact]
+    public void ContinueReading_StartedAndUnfinished_LastFirst()
+    {
+        Book Make(long id, double progress, int? minutesAgo) =>
+            new(id, 1, $"{id}.epub", $"K{id}", BookFormat.Epub, 1, DateTime.UnixEpoch, $"Libro {id}", null, null, false,
+                DateTime.Now, minutesAgo is null ? null : DateTime.Now.AddMinutes(-minutesAgo.Value), progress);
+
+        var order = LibraryService.ContinueReading([Make(1, 0.2, 30), Make(2, 0.5, 5), Make(3, 0, null), Make(4, 1.0, 1)])
+            .Select(b => b.Id);
+
+        Assert.Equal([2L, 1L], order); // el 3 nunca se abrió y el 4 está terminado
+    }
+
+    [Fact]
     public void Library_SurvivesRestart()
     {
         TestBooks.Epub(External, "uno.epub");

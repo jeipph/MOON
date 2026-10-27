@@ -8,6 +8,7 @@
   <ItemGroup>
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.14" />
+    <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.4314.35" />
   </ItemGroup>
 
   <PropertyGroup>
@@ -32,6 +33,11 @@
   <ItemGroup>
     <!-- Icono de la ventana (se carga desde dentro del programa) -->
     <Resource Include="Assets\moon.ico" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Página del lector y foliate-js: se copian junto a MOON.exe (carpeta Web). -->
+    <None Update="Web\**\*" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
 </Project>

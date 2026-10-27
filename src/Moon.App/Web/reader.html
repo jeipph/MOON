@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<!--
+  Seguridad: un EPUB puede traer JavaScript. Solo se permiten los scripts de MOON (https://app.moon);
+  los del libro quedan bloqueados (las páginas del libro son blob: y heredan esta política).
+-->
+<meta http-equiv="Content-Security-Policy"
+      content="default-src 'none';
+               script-src https://app.moon;
+               style-src https://app.moon 'unsafe-inline' blob:;
+               img-src blob: data:;
+               font-src blob: data:;
+               media-src blob: data:;
+               frame-src blob:;
+               connect-src https://book.moon blob: data:;">
+<title>MOON</title>
+<link rel="stylesheet" href="reader.css">
+</head>
+<body>
+<p id="message"></p>
+<script type="module" src="reader.js"></script>
+</body>
+</html>
