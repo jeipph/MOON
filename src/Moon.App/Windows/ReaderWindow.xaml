@@ -210,8 +210,50 @@
                         BorderBrush="{DynamicResource Brush.Border}"
                         BorderThickness="1"
                         CornerRadius="{DynamicResource Radius.Control}"
-                        Padding="{DynamicResource Space.ColorDot}">
-                    <StackPanel x:Name="SelectionBar" Orientation="Horizontal" />
+                        Padding="{DynamicResource Space.ColorDot}"
+                        MaxWidth="{DynamicResource Size.LookupPopup}"
+                        TextElement.Foreground="{DynamicResource Brush.Text}"
+                        TextElement.FontFamily="{DynamicResource Font.Main}">
+                    <StackPanel>
+                        <!-- Diccionario inglés → español (solo si se seleccionó una palabra o expresión corta) -->
+                        <StackPanel Margin="{DynamicResource Padding.Field}"
+                                    AutomationProperties.Name="Diccionario"
+                                    Visibility="{Binding HasLookup, Converter={StaticResource Visible}}">
+                            <DockPanel>
+                                <Button DockPanel.Dock="Right"
+                                        Style="{StaticResource ChipButton}"
+                                        AutomationProperties.Name="Guardar palabra"
+                                        ToolTip="Guardar en tu vocabulario con esta frase"
+                                        Command="{Binding SaveWordCommand}">
+                                    <Button.Content>
+                                        <TextBlock>
+                                            <TextBlock.Style>
+                                                <Style TargetType="TextBlock">
+                                                    <Setter Property="Text" Value="Guardar palabra" />
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding WordSaved}" Value="True">
+                                                            <Setter Property="Text" Value="✓ Guardada" />
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </TextBlock.Style>
+                                        </TextBlock>
+                                    </Button.Content>
+                                </Button>
+                                <TextBlock Text="{Binding LookupTitle}" FontWeight="SemiBold" VerticalAlignment="Center"
+                                           AutomationProperties.AutomationId="PalabraBuscada" TextTrimming="CharacterEllipsis" />
+                            </DockPanel>
+                            <ItemsControl ItemsSource="{Binding LookupSenses}" Margin="{DynamicResource Space.AboveSmall}"
+                                          AutomationProperties.AutomationId="Traducciones">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <TextBlock Text="{Binding}" TextWrapping="Wrap" FontSize="{DynamicResource FontSize.Small}" />
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </StackPanel>
+                        <StackPanel x:Name="SelectionBar" Orientation="Horizontal" />
+                    </StackPanel>
                 </Border>
             </Popup>
 

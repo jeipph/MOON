@@ -158,6 +158,14 @@ public sealed class LibraryService
     public void SetProgress(long bookId, double progress, string? location = null) =>
         _store.SetProgress(bookId, progress, location, DateTime.Now);
 
+    // ---- Vocabulario ----
+
+    public IReadOnlyList<Dictionary.VocabularyEntry> Vocabulary => _store.GetVocabulary();
+
+    public Dictionary.VocabularyEntry AddVocabulary(Dictionary.VocabularyEntry entry) => _store.AddVocabulary(entry);
+
+    public void DeleteVocabulary(long id) => _store.DeleteVocabulary(id);
+
     // ---- Subrayados, marcadores y zonas ----
 
     public IReadOnlyList<Annotations.Annotation> GetAnnotations(long bookId) => _store.GetAnnotations(bookId);

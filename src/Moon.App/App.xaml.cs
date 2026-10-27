@@ -70,6 +70,7 @@ public partial class App : Application
         services.AddSingleton<ThemeService>();
         services.AddSingleton(_ => new WebViewHost(
             dataFolder is null ? WebViewHost.DefaultUserDataFolder : Path.Combine(dataFolder, "WebView2")));
+        services.AddSingleton<DictionaryService>();
         services.AddSingleton<ReaderLauncher>();
         services.AddSingleton(_ => new LibraryService(
             new SqliteLibraryStore(dataFolder is null ? SqliteLibraryStore.DefaultPath : Path.Combine(dataFolder, "moon.db")),

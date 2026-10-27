@@ -3,6 +3,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Moon.App.Services;
 using Moon.Core.Annotations;
+using Moon.Core.Dictionary;
 using Moon.Core.Library;
 using Moon.Core.Models;
 
@@ -25,17 +26,21 @@ public sealed partial class ReaderViewModel : ObservableObject, IDisposable
     private static readonly TimeSpan SaveDelay = TimeSpan.FromSeconds(1.5);
 
     private readonly LibraryService _library;
+    private readonly DictionaryService _dictionary;
     private readonly SettingsService _settings;
     private readonly ThemeService _themes;
     private readonly Timer _saveTimer;
     private readonly Lock _pendingLock = new();
     private (double Fraction, string? Cfi)? _pending;
 
-    public ReaderViewModel(Book book, string filePath, LibraryService library, SettingsService settings, ThemeService themes)
+    public ReaderViewModel(Book book, string filePath, LibraryService library, SettingsService settings, ThemeService themes,
+        DictionaryService dictionary)
     {
         Book = book;
         FilePath = filePath;
         _library = library;
+        _dictionary = dictionary;
+        _dictionary.Preload();
         _settings = settings;
         _themes = themes;
         Title = book.Title;
@@ -50,7 +55,65 @@ public sealed partial class ReaderViewModel : ObservableObject, IDisposable
     // ---- Subrayados, notas y marcadores ----
 
     /// <summary>Lo seleccionado ahora en la página (null si no hay nada).</summary>
-    public record PageSelection(string Cfi, string Text, string Chapter, double Fraction);
+    /// <param name="Paragraph">El párrafo entero, y <paramref name="Offset"/> dónde empieza lo seleccionado.</param>
+    public record PageSelection(string Cfi, string Text, string Chapter, double Fraction, string Paragraph = "", int Offset = 0);
+
+    // ---- Diccionario ----
+
+    /// <summary>Traducción de lo seleccionado (si es una palabra o una expresión corta).</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasLookup), nameof(LookupTitle), nameof(LookupSenses))]
+    public partial LookupResult? Lookup { get; private set; }
+
+    public bool HasLookup => Lookup is not null;
+
+    public string LookupTitle => Lookup is null ? "" : Lookup.Lemma == EnglishLemmatizer.Clean(Lookup.Word) ? Lookup.Lemma : $"{Lookup.Word} → {Lookup.Lemma}";
+
+    /// <summary>"verbo: ir, marchar" — como mucho tres categorías.</summary>
+    public IEnumerable<string> LookupSenses => Lookup?.Senses.Take(3).Select(s => $"{s.PartOfSpeech}: {string.Join(", ", s.Translations.Take(5))}") ?? [];
+
+    [ObservableProperty]
+    public partial bool WordSaved { get; private set; }
+
+    partial void OnSelectionChanged(PageSelection? value) => _ = LookUpSelectionAsync(value);
+
+    private async Task LookUpSelectionAsync(PageSelection? selection)
+    {
+        WordSaved = false;
+        string[] words = selection?.Text.Split((char[])[' ', '\n', '\t'], StringSplitOptions.RemoveEmptyEntries) ?? [];
+        if (selection is null || words.Length is 0 or > 3)
+        {
+            Lookup = null;
+            return;
+        }
+        string? next = words.Length == 1 ? NextWord(selection.Paragraph, selection.Offset + selection.Text.Length) : words.ElementAtOrDefault(1);
+        LookupResult? result = await _dictionary.LookupAsync(words[0], next);
+        // Si se seleccionaron varias palabras y no son una expresión del diccionario, no se traduce.
+        if (Selection == selection)
+            Lookup = words.Length > 1 && result?.Lemma.Contains(' ') != true ? null : result;
+    }
+
+    // La palabra que sigue a la selección en el párrafo (para "give" + "up").
+    private static string? NextWord(string paragraph, int from)
+    {
+        if (from >= paragraph.Length)
+            return null;
+        string rest = paragraph[from..].TrimStart();
+        int end = rest.IndexOfAny([' ', '\n', '\t', ',', '.', ';', ':', '!', '?']);
+        string next = end < 0 ? rest : rest[..end];
+        return next.Length > 0 ? next : null;
+    }
+
+    [RelayCommand]
+    private void SaveWord()
+    {
+        if (Lookup is not { } lookup || Selection is not { } s)
+            return;
+        _library.AddVocabulary(new VocabularyEntry(
+            0, EnglishLemmatizer.Clean(lookup.Word), lookup.Lemma, lookup.Summary,
+            VocabularyExporter.SentenceAround(s.Paragraph, s.Offset), Book.Id, Book.Title, s.Cfi, DateTime.Now));
+        WordSaved = true;
+    }
 
     public ObservableCollection<AnnotationItemViewModel> Annotations { get; } = [];
 

@@ -56,6 +56,9 @@ public partial class MainWindow : Window
             TitleBar.SetDark(hwnd, !_themes.IsLight);
     }
 
+    private void OnVocabularyClick(object sender, RoutedEventArgs e) =>
+        new VocabularyWindow(this, _viewModel.Library.Service).ShowDialog();
+
     private async void OnDrop(object sender, DragEventArgs e)
     {
         if (e.Data.GetData(DataFormats.FileDrop) is string[] paths)

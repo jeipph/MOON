@@ -1,0 +1,51 @@
+<Window x:Class="Moon.App.Windows.VocabularyWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:dict="clr-namespace:Moon.Core.Dictionary;assembly=Moon.Core"
+        Title="Vocabulario"
+        Icon="/Assets/moon.ico"
+        Width="{DynamicResource Size.Reader.Width}"
+        Height="{DynamicResource Size.Window.MinHeight}"
+        MinWidth="{DynamicResource Size.Window.MinWidth}"
+        WindowStartupLocation="CenterOwner"
+        Background="{DynamicResource Brush.Background}"
+        Foreground="{DynamicResource Brush.Text}"
+        FontFamily="{DynamicResource Font.Main}"
+        FontSize="{DynamicResource FontSize.Body}">
+    <DockPanel Margin="{DynamicResource Padding.Library}">
+        <DockPanel DockPanel.Dock="Top" LastChildFill="False" Margin="{DynamicResource Space.Status}">
+            <TextBlock DockPanel.Dock="Left" x:Name="CountText" VerticalAlignment="Center" FontSize="{DynamicResource FontSize.Heading}" />
+            <Button DockPanel.Dock="Right" Style="{StaticResource ToolButton}" Margin="{DynamicResource Space.Gap}"
+                    Content="Exportar para Anki…" ToolTip="Archivo de texto para importar en Anki (Archivo → Importar)" Click="OnExportAnkiClick" />
+            <Button DockPanel.Dock="Right" Style="{StaticResource ChipButton}" Content="Exportar CSV…" Click="OnExportCsvClick" />
+        </DockPanel>
+        <TextBlock DockPanel.Dock="Top" x:Name="EmptyText" TextWrapping="Wrap" Foreground="{DynamicResource Brush.TextMuted}"
+                   Text="Aún no hay palabras. En un libro, selecciona una palabra en inglés y pulsa «Guardar palabra»." />
+        <ListBox x:Name="WordList"
+                 AutomationProperties.Name="Palabras"
+                 Background="Transparent"
+                 BorderThickness="0"
+                 ItemContainerStyle="{StaticResource SidebarItem}"
+                 ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+            <ListBox.ItemTemplate>
+                <DataTemplate DataType="{x:Type dict:VocabularyEntry}">
+                    <StackPanel AutomationProperties.Name="{Binding Word}">
+                        <TextBlock>
+                            <Run Text="{Binding Word, Mode=OneWay}" FontWeight="SemiBold" />
+                            <Run Text="  " />
+                            <Run Text="{Binding Translation, Mode=OneWay}" />
+                        </TextBlock>
+                        <TextBlock Text="{Binding Context}" TextWrapping="Wrap" FontStyle="Italic"
+                                   Margin="{DynamicResource Space.AboveSmall}" Foreground="{DynamicResource Brush.TextMuted}" />
+                        <TextBlock Text="{Binding BookTitle}" FontSize="{DynamicResource FontSize.Micro}" Foreground="{DynamicResource Brush.TextMuted}" />
+                    </StackPanel>
+                </DataTemplate>
+            </ListBox.ItemTemplate>
+            <ListBox.ContextMenu>
+                <ContextMenu>
+                    <MenuItem Header="Eliminar" Click="OnDeleteClick" />
+                </ContextMenu>
+            </ListBox.ContextMenu>
+        </ListBox>
+    </DockPanel>
+</Window>

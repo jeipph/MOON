@@ -9,7 +9,7 @@ namespace Moon.Core.Library;
 /// </summary>
 public sealed class SqliteLibraryStore
 {
-    private const int SchemaVersion = 4;
+    private const int SchemaVersion = 5;
     private readonly string _connectionString;
 
     public SqliteLibraryStore(string databasePath)
@@ -54,6 +54,23 @@ public sealed class SqliteLibraryStore
                     created_at  TEXT NOT NULL
                 );
                 CREATE INDEX annotations_book ON annotations(book_id);
+                """);
+        }
+        if (version < 5)
+        {
+            // Vocabulario: se conserva aunque el libro se quite de la biblioteca (book_id queda vacío).
+            Execute(connection, """
+                CREATE TABLE vocabulary (
+                    id          INTEGER PRIMARY KEY,
+                    word        TEXT NOT NULL,
+                    lemma       TEXT NOT NULL,
+                    translation TEXT NOT NULL,
+                    context     TEXT NOT NULL DEFAULT '',
+                    book_id     INTEGER REFERENCES books(id) ON DELETE SET NULL,
+                    book_title  TEXT NOT NULL DEFAULT '',
+                    location    TEXT,
+                    created_at  TEXT NOT NULL
+                );
                 """);
         }
         Execute(connection, $"PRAGMA user_version = {SchemaVersion}");
@@ -273,6 +290,50 @@ public sealed class SqliteLibraryStore
     {
         using SqliteConnection connection = Open();
         Execute(connection, "DELETE FROM annotations WHERE id = $id", ("$id", id));
+    }
+
+    // ---- Vocabulario ----
+
+    public IReadOnlyList<Dictionary.VocabularyEntry> GetVocabulary()
+    {
+        using SqliteConnection connection = Open();
+        using SqliteCommand command = connection.CreateCommand();
+        command.CommandText = """
+            SELECT id, word, lemma, translation, context, book_id, book_title, location, created_at
+            FROM vocabulary ORDER BY created_at DESC
+            """;
+        using SqliteDataReader reader = command.ExecuteReader();
+        var list = new List<Dictionary.VocabularyEntry>();
+        while (reader.Read())
+        {
+            list.Add(new Dictionary.VocabularyEntry(
+                reader.GetInt64(0), reader.GetString(1), reader.GetString(2), reader.GetString(3), reader.GetString(4),
+                reader.IsDBNull(5) ? null : reader.GetInt64(5), reader.GetString(6),
+                reader.IsDBNull(7) ? null : reader.GetString(7), ParseDate(reader.GetString(8))!.Value));
+        }
+        return list;
+    }
+
+    /// <summary>Guarda la palabra; si ya estaba (misma forma base), no la repite y devuelve la existente.</summary>
+    public Dictionary.VocabularyEntry AddVocabulary(Dictionary.VocabularyEntry entry)
+    {
+        using SqliteConnection connection = Open();
+        if (Scalar(connection, "SELECT id FROM vocabulary WHERE lemma = $lemma LIMIT 1", ("$lemma", entry.Lemma)) is long existing)
+            return GetVocabulary().First(v => v.Id == existing);
+        long id = (long)Scalar(connection, """
+            INSERT INTO vocabulary (word, lemma, translation, context, book_id, book_title, location, created_at)
+            VALUES ($word, $lemma, $translation, $context, $book, $title, $location, $created)
+            RETURNING id
+            """,
+            ("$word", entry.Word), ("$lemma", entry.Lemma), ("$translation", entry.Translation), ("$context", entry.Context),
+            ("$book", entry.BookId), ("$title", entry.BookTitle), ("$location", entry.Location), ("$created", FormatDate(entry.CreatedAt)))!;
+        return entry with { Id = id };
+    }
+
+    public void DeleteVocabulary(long id)
+    {
+        using SqliteConnection connection = Open();
+        Execute(connection, "DELETE FROM vocabulary WHERE id = $id", ("$id", id));
     }
 
     private static Annotations.NormalizedRect? ParseRect(string text)

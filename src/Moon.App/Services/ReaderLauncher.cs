@@ -18,14 +18,17 @@ public sealed class ReaderLauncher
     private readonly SettingsService _settings;
     private readonly ThemeService _themes;
     private readonly WebViewHost _webViewHost;
+    private readonly DictionaryService _dictionary;
     private readonly Dictionary<long, Window> _open = [];
 
-    public ReaderLauncher(LibraryService library, SettingsService settings, ThemeService themes, WebViewHost webViewHost)
+    public ReaderLauncher(LibraryService library, SettingsService settings, ThemeService themes, WebViewHost webViewHost,
+        DictionaryService dictionary)
     {
         _library = library;
         _settings = settings;
         _themes = themes;
         _webViewHost = webViewHost;
+        _dictionary = dictionary;
     }
 
     /// <summary>Al cerrar un libro (para que la biblioteca muestre el progreso nuevo).</summary>
@@ -43,7 +46,7 @@ public sealed class ReaderLauncher
         Window window;
         if (book.OpensAsBook)
         {
-            var viewModel = new ReaderViewModel(book, filePath, _library, _settings, _themes);
+            var viewModel = new ReaderViewModel(book, filePath, _library, _settings, _themes, _dictionary);
             window = new ReaderWindow(viewModel, _webViewHost, _themes);
         }
         else if (book.OpensAsComic)

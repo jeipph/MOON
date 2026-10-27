@@ -10,6 +10,7 @@ MOON usa estas bibliotecas. Todas permiten usarlas en un programa propio; aquí 
 | [Microsoft.Web.WebView2](https://www.nuget.org/packages/Microsoft.Web.WebView2) 1.0.4314.35 | El "navegador" interno donde se ve la página | Licencia BSD de Microsoft (ver el paquete) | © Microsoft Corporation |
 | [SharpCompress](https://github.com/adamhathcock/sharpcompress) 0.50.7 | Abrir cómics CBR (RAR) y CB7 (7Z) | MIT | © 2014 Adam Hathcock |
 | [Microsoft.Data.Sqlite](https://github.com/dotnet/efcore) 10.0.14 | Base de datos de la biblioteca | MIT | © .NET Foundation and Contributors |
+| [Apertium eng-spa](https://github.com/apertium/apertium-eng-spa) (diccionario bilingüe, convertido a `Data/en-es.tsv`) | Traducciones inglés → español | GPL-2.0 (solo el archivo de datos; MOON lo lee pero no lo modifica) | © Proyecto Apertium y colaboradores |
 | [CommunityToolkit.Mvvm](https://github.com/CommunityToolkit/dotnet) 8.4.2 | MVVM | MIT | © .NET Foundation and Contributors |
 | [Microsoft.Extensions.DependencyInjection](https://github.com/dotnet/runtime) 10.0.14 | Unir las piezas de la app | MIT | © .NET Foundation and Contributors |
 

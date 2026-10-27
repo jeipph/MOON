@@ -64,6 +64,19 @@
 
                 <Button DockPanel.Dock="Right"
                         Margin="0,0,16,0"
+                        AutomationProperties.Name="Vocabulario"
+                        Style="{StaticResource ToolButton}"
+                        VerticalAlignment="Center"
+                        Click="OnVocabularyClick"
+                        ToolTip="Las palabras que guardaste al leer (para estudiarlas o pasarlas a Anki)">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock FontFamily="{DynamicResource Font.Icons}" VerticalAlignment="Center" Text="&#xE8A5;" />
+                        <TextBlock Margin="{DynamicResource Space.Gap}" VerticalAlignment="Center" Text="Vocabulario" />
+                    </StackPanel>
+                </Button>
+
+                <Button DockPanel.Dock="Right"
+                        Margin="0,0,8,0"
                         AutomationProperties.Name="Enlazar carpeta"
                         Style="{StaticResource ToolButton}"
                         VerticalAlignment="Center"

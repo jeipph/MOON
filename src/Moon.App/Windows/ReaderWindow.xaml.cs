@@ -204,14 +204,18 @@ public partial class ReaderWindow : Window
         if (cfi is null || string.IsNullOrWhiteSpace(text))
             return;
         double Number(string name) => data.TryGetProperty(name, out JsonElement v) && v.ValueKind == JsonValueKind.Number ? v.GetDouble() : 0;
-        _viewModel.Selection = new ReaderViewModel.PageSelection(cfi, text, Text(data, "chapter") ?? "", Number("fraction"));
+        _viewModel.Selection = new ReaderViewModel.PageSelection(cfi, text, Text(data, "chapter") ?? "", Number("fraction"),
+            Text(data, "paragraph") ?? "", (int)Number("offset"));
 
         SelectionPopup.IsOpen = false; // para que recalcule la posición
         SelectionBar.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
         double width = SelectionBar.DesiredSize.Width;
+        // Con una palabra (o tres como mucho) se muestra también la traducción: la barra es más alta.
+        bool mayShowDictionary = text.Split(' ', StringSplitOptions.RemoveEmptyEntries).Length <= 3;
+        double height = mayShowDictionary ? 150 : 48;
         double below = Number("y") + 8;
         // Si no cabe debajo del texto, va encima.
-        double y = below + 48 > Page.ActualHeight ? Number("top") - 56 : below;
+        double y = below + height > Page.ActualHeight ? Number("top") - height - 8 : below;
         SelectionPopup.HorizontalOffset = Math.Clamp(Number("x") - width / 2, 0, Math.Max(0, Page.ActualWidth - width));
         SelectionPopup.VerticalOffset = Math.Max(0, y);
         SelectionPopup.IsOpen = true;

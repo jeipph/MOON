@@ -494,3 +494,6 @@ spikes/**/muestras/
 
 # Copia de exploración de foliate-js (MOON usa la de src/Moon.App/Web/foliate-js)
 spikes/S2-epub/foliate-js/
+
+# Fuente original del diccionario (se convierte a src/Moon.App/Data/en-es.tsv)
+spikes/S7-diccionario/eng-spa.dix

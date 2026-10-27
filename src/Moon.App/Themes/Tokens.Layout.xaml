@@ -64,6 +64,7 @@
     <GridLength x:Key="Size.ColorBar.Grid">4</GridLength>
     <sys:Double x:Key="Size.NoteBox.Height">120</sys:Double>
     <sys:Double x:Key="Size.NoteDialog.Width">420</sys:Double>
+    <sys:Double x:Key="Size.LookupPopup">380</sys:Double>
     <Thickness x:Key="Padding.Annotation">10,8,8,8</Thickness>
     <Thickness x:Key="Space.ColorDot">3</Thickness>
     <sys:Double x:Key="Size.Reader.Width">1000</sys:Double>

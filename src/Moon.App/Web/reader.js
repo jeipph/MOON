@@ -211,10 +211,18 @@ const checkSelection = (doc, index) => {
     const range = selection.getRangeAt(0)
     const box = range.getBoundingClientRect()
     const frame = doc.defaultView.frameElement.getBoundingClientRect()
+    // Para el diccionario: el párrafo y dónde empieza lo seleccionado (para la frase de contexto
+    // y para probar expresiones de dos palabras como "give up").
+    const block = range.startContainer.parentElement?.closest('p, li, dd, blockquote, h1, h2, h3, h4, div') ?? doc.body
+    const before = doc.createRange()
+    before.selectNodeContents(block)
+    before.setEnd(range.startContainer, range.startOffset)
     post({
         type: 'selection',
         cfi: view.getCFI(index, range),
         text,
+        paragraph: block.textContent ?? '',
+        offset: before.toString().length,
         // Posición en la página de MOON (para colocar el menú de colores).
         x: frame.left + box.left + box.width / 2,
         y: frame.top + box.bottom,

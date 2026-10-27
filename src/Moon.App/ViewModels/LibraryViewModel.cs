@@ -36,6 +36,9 @@ public sealed partial class LibraryViewModel : ObservableObject, IDisposable
         _reader.ReaderClosed += (_, _) => Populate();
     }
 
+    /// <summary>La biblioteca en sí (para ventanas como Vocabulario).</summary>
+    public LibraryService Service => _library;
+
     public ObservableCollection<SourceItemViewModel> Sources { get; } = [];
 
     public ObservableCollection<BookItemViewModel> Books { get; } = [];

@@ -80,10 +80,11 @@ Decisión (2026-10-27): **dos formas de meter libros**: "Añadir libros…" **co
 - *Verificado por Claude (2026-10-27) con pruebas cortas: subrayar y marcador en Alice y siguen al reabrir; zona con nota en The Walking Dead. 55 pruebas. Falta que lo vea la persona.*
 
 ## L7 — Diccionario y vocabulario (≈4 h)
-- [ ] `IDictionarySource` + una primera fuente (decidir idioma y fuente; ver decisiones pendientes).
-- [ ] `LookupPopup` al seleccionar o hacer doble clic en una palabra.
-- [ ] Guardar en vocabulario con contexto; `VocabularyView`; exportar CSV para Anki.
-- [ ] Caché de consultas para no repetir peticiones; opción "solo offline".
+- [x] Diccionario inglés → español **sin internet**: Apertium eng-spa (GPL-2.0) convertido a `Data/en-es.tsv` (29 867 palabras, 830 KB) con `spikes/S7-diccionario` (DixToTsv). Formas base en inglés (`EnglishLemmatizer`: irregulares, plurales, -ed, -ing, comparativos, -ly) y expresiones de dos palabras ("give up").
+- [x] Al seleccionar o hacer doble clic en una palabra (o hasta 3), la barra muestra la traducción por categoría, encima de los colores.
+- [x] "Guardar palabra" con la frase y el libro (tabla `vocabulary`, base de datos versión 5; sin repetir la misma forma base; se conserva si se quita el libro). Ventana **Vocabulario** desde la biblioteca: eliminar, exportar para **Anki** (texto con tabuladores y cabeceras `#separator`) y CSV.
+- [ ] (Más adelante, opcional y apagado) definiciones en inglés por internet; el diccionario local ya no necesita caché.
+- *Verificado por Claude (2026-10-27): 72 pruebas; prueba corta: doble clic en "denial" → "nombre: denegación (f)", guardada y visible en Vocabulario. En cómics llegará con el OCR (L8). Falta que lo vea la persona.*
 
 ## L8 — OCR por zona (≈4 h) *(según resultado de S1)*
 - [ ] `RegionSelectorOverlay` y recorte del bitmap original.
