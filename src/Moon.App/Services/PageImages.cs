@@ -21,6 +21,7 @@ public sealed class PageImages : IDisposable
     private readonly LinkedList<(Key Key, BitmapSource Image)> _cache = new();
     private readonly Lock _cacheLock = new();
     private readonly CancellationTokenSource _closing = new();
+    private readonly SemaphoreSlim _decoders = new(2, 2);
 
     private readonly record struct Key(int Page, int Width, ImageAdjustments Adjustments);
 
@@ -78,7 +79,8 @@ public sealed class PageImages : IDisposable
     }
 
     /// <summary>La página al ancho pedido (en píxeles de pantalla), o null si está dañada.</summary>
-    public Task<BitmapSource?> GetAsync(int page, int width, ImageAdjustments adjustments)
+    /// <param name="stillWanted">Si se indica, se pregunta justo antes de decodificar (¿sigue en pantalla?).</param>
+    public Task<BitmapSource?> GetAsync(int page, int width, ImageAdjustments adjustments, Func<bool>? stillWanted = null)
     {
         // Se redondea el ancho para no recargar por cambios de 1 px al mover la ventana.
         width = Math.Max(64, (int)Math.Ceiling(width / 64.0) * 64);
@@ -96,22 +98,41 @@ public sealed class PageImages : IDisposable
             }
         }
         CancellationToken token = _closing.Token;
-        return Task.Run(() =>
+        // Sin pasar el token a Task.Run: si la ventana se cierra, la tarea devuelve null en vez de
+        // "cancelarse" (una tarea cancelada lanzaría una excepción en quien la espera).
+        return Task.Run(async () =>
         {
-            if (token.IsCancellationRequested)
-                return null;
-            BitmapSource? image = Decode(page, width, adjustments);
-            if (image is not null)
+            // Como mucho dos páginas a la vez: al bajar rápido en webtoon no se amontonan decenas.
+            try
             {
-                lock (_cacheLock)
-                {
-                    _cache.AddFirst((key, image));
-                    while (_cache.Count > CacheSize)
-                        _cache.RemoveLast(); // las páginas lejanas se sueltan de la memoria
-                }
+                await _decoders.WaitAsync(token);
             }
-            return image;
-        }, token);
+            catch (OperationCanceledException)
+            {
+                return null; // se cerró la ventana
+            }
+            try
+            {
+                // Si mientras esperaba la página ya salió de la pantalla, no se gasta memoria en ella.
+                if (token.IsCancellationRequested || (stillWanted is not null && !stillWanted()))
+                    return null;
+                BitmapSource? image = Decode(page, width, adjustments);
+                if (image is not null)
+                {
+                    lock (_cacheLock)
+                    {
+                        _cache.AddFirst((key, image));
+                        while (_cache.Count > CacheSize)
+                            _cache.RemoveLast(); // las páginas lejanas se sueltan de la memoria
+                    }
+                }
+                return image;
+            }
+            finally
+            {
+                _decoders.Release();
+            }
+        });
     }
 
     private BitmapSource? Decode(int page, int width, ImageAdjustments adjustments)
@@ -119,25 +140,21 @@ public sealed class PageImages : IDisposable
         try
         {
             byte[] bytes = _source.Read(page, width);
+            // Primero solo la cabecera (cuánto mide) y luego una sola decodificación al tamaño justo.
+            // Decodificar a tamaño completo para medir gastaba ~24 MB por página de 2000×3000.
+            BitmapFrame header = BitmapDecoder.Create(new MemoryStream(bytes),
+                BitmapCreateOptions.DelayCreation | BitmapCreateOptions.IgnoreColorProfile, BitmapCacheOption.None).Frames[0];
+            _sizes[page] ??= (header.PixelWidth, header.PixelHeight);
+
             var image = new BitmapImage();
             image.BeginInit();
             image.CacheOption = BitmapCacheOption.OnLoad;
             image.CreateOptions = BitmapCreateOptions.IgnoreColorProfile;
+            if (header.PixelWidth > width)
+                image.DecodePixelWidth = width; // solo se reduce: agrandar una página pequeña no la mejora
             image.StreamSource = new MemoryStream(bytes);
             image.EndInit();
-            // Solo se reduce: nunca se agranda una página pequeña (se vería borrosa igual).
-            if (image.PixelWidth > width)
-            {
-                image = new BitmapImage();
-                image.BeginInit();
-                image.CacheOption = BitmapCacheOption.OnLoad;
-                image.CreateOptions = BitmapCreateOptions.IgnoreColorProfile;
-                image.DecodePixelWidth = width;
-                image.StreamSource = new MemoryStream(bytes);
-                image.EndInit();
-            }
             image.Freeze();
-            _sizes[page] ??= (image.PixelWidth, image.PixelHeight);
             return adjustments.IsNone ? image : Adjust(image, adjustments);
         }
         catch (Exception exception) when (exception is IOException or NotSupportedException or InvalidDataException or ArgumentException or FileFormatException or ObjectDisposedException or InvalidOperationException)

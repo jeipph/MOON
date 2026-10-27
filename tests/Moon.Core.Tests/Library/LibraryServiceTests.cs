@@ -127,6 +127,22 @@ public sealed class LibraryServiceTests : IDisposable
     }
 
     [Fact]
+    public void BrokenFiles_DoNotStopTheLibrary()
+    {
+        // SharpCompress lanza sus propios errores con archivos falsos: no deben cortar la revisión.
+        TestBooks.Text(External, "comic-roto.cbr", "Rar!esto no es un rar de verdad");
+        TestBooks.Text(External, "otro-roto.cb7", "7z falso");
+        TestBooks.Epub(External, "bueno.epub");
+        LibraryService library = NewService();
+
+        Assert.Equal(LinkResult.Linked, library.Link(External));
+
+        Assert.Equal(3, library.Books.Count);
+        Assert.Contains(library.Books, b => b.Title == "comic-roto" && !b.HasCover);
+        Assert.Contains(library.Books, b => b.Title == "El nombre del viento");
+    }
+
+    [Fact]
     public void DeletedFile_LeavesTheLibrary()
     {
         string path = TestBooks.Epub(External, "uno.epub");

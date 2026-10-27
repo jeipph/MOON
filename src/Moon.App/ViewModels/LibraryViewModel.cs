@@ -223,8 +223,9 @@ public sealed partial class LibraryViewModel : ObservableObject, IDisposable
             T result = await Task.Run(() => work(progress));
             Status = describe(result);
         }
-        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+        catch (Exception exception) when (exception is not OutOfMemoryException)
         {
+            // Nunca dejar la biblioteca a medias y el estado congelado: se avisa y se sigue.
             Status = $"No se pudo completar: {exception.Message}";
         }
         Populate();

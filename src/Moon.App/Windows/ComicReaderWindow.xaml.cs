@@ -30,6 +30,15 @@ public sealed partial class WebtoonPage(int index) : ObservableObject
 
     [ObservableProperty]
     public partial ImageSource? Image { get; set; }
+
+    private volatile bool _isOnScreen;
+
+    /// <summary>Si la página está en pantalla ahora. Se lee desde el hilo que decodifica.</summary>
+    public bool IsOnScreen
+    {
+        get => _isOnScreen;
+        set => _isOnScreen = value;
+    }
 }
 
 /// <summary>
@@ -44,6 +53,8 @@ public partial class ComicReaderWindow : Window
     private const double DragThreshold = 6;
     // Ancho máximo de la columna en modo webtoon con "Página entera" (como en el móvil).
     private const double WebtoonColumn = 900;
+    // Cada cuántas páginas que salen de pantalla (en webtoon) se pide limpiar la memoria.
+    private const int ReleaseBatch = 12;
 
     private readonly ComicReaderViewModel _viewModel;
     private readonly ThemeService _themes;
@@ -58,6 +69,7 @@ public partial class ComicReaderWindow : Window
     private ScrollViewer? _webtoonScroller;
     private bool _scrollingToPage;
     private bool _webtoonPositioning;
+    private int _pagesReleased;
 
     public ComicReaderWindow(ComicReaderViewModel viewModel, ThemeService themes)
     {
@@ -81,7 +93,14 @@ public partial class ComicReaderWindow : Window
         Closed += (_, _) =>
         {
             _themes.Changed -= OnThemeChanged;
+            _webtoonPages.Clear();
+            SpreadPanel.Children.Clear();
             _viewModel.Dispose();
+            // Las imágenes de las páginas ocupan memoria fuera de .NET: al cerrar el cómic se devuelve
+            // a Windows ya, en vez de esperar a que .NET decida limpiar (podían quedar cientos de MB).
+            GC.Collect();
+            GC.WaitForPendingFinalizers();
+            GC.Collect();
         };
     }
 
@@ -216,14 +235,24 @@ public partial class ComicReaderWindow : Window
     private void OnWebtoonPageLoaded(object sender, RoutedEventArgs e)
     {
         if ((sender as FrameworkElement)?.DataContext is WebtoonPage page)
+        {
+            page.IsOnScreen = true;
             LoadWebtoonPage(page);
+        }
     }
 
     // Al salir de la pantalla se suelta la imagen: un webtoon de 300 páginas no llena la memoria.
     private void OnWebtoonPageUnloaded(object sender, RoutedEventArgs e)
     {
         if ((sender as FrameworkElement)?.DataContext is WebtoonPage page)
+        {
+            page.IsOnScreen = false;
             page.Image = null;
+            // .NET no "ve" lo que pesan las imágenes (viven fuera de su memoria) y tarda en limpiar:
+            // cada cierto número de páginas que salen de pantalla se le pide que lo haga.
+            if (++_pagesReleased % ReleaseBatch == 0)
+                GC.Collect(2, GCCollectionMode.Optimized, blocking: false);
+        }
     }
 
     private async void LoadWebtoonPage(WebtoonPage page)
@@ -231,8 +260,9 @@ public partial class ComicReaderWindow : Window
         if (page.Image is not null)
             return;
         double width = page.Width;
-        BitmapSource? bitmap = await _viewModel.Pages.GetAsync(page.Index, (int)(width * Dpi), _viewModel.Adjustments);
-        if (Math.Abs(page.Width - width) < 0.5 && IsRealized(page))
+        // Si se baja rápido, la página puede salir de pantalla antes de decodificarla: entonces se salta.
+        BitmapSource? bitmap = await _viewModel.Pages.GetAsync(page.Index, (int)(width * Dpi), _viewModel.Adjustments, () => page.IsOnScreen);
+        if (bitmap is not null && Math.Abs(page.Width - width) < 0.5 && page.IsOnScreen)
             page.Image = bitmap;
     }
 

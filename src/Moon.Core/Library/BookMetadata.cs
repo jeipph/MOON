@@ -25,7 +25,9 @@ public sealed record BookMetadata(string Title, string? Author, string? Series, 
                 return fallback;
             return read with { Title = string.IsNullOrWhiteSpace(read.Title) ? fallback.Title : read.Title };
         }
-        catch (Exception exception) when (exception is IOException or InvalidDataException or System.Xml.XmlException or UnauthorizedAccessException)
+        // El archivo viene de fuera y puede estar roto de mil maneras (cada librería lanza sus propios errores):
+        // pase lo que pase, el libro entra en la biblioteca con el nombre del archivo.
+        catch (Exception exception) when (exception is not OutOfMemoryException)
         {
             return fallback;
         }
@@ -106,7 +108,7 @@ public sealed record BookMetadata(string Title, string? Author, string? Series, 
 
         IArchiveEntry? first = files
             .Where(e => IsPageImage(e.Key!))
-            .OrderBy(e => e.Key, NaturalSort.Instance)
+            .OrderBy(e => e.Key!, NaturalSort.Instance)
             .FirstOrDefault();
         byte[]? cover = null;
         if (first is not null)
@@ -132,7 +134,7 @@ public sealed record BookMetadata(string Title, string? Author, string? Series, 
             string? manga = XDocument.Load(stream).Root?.Element("Manga")?.Value;
             return manga is "Yes" or "YesAndRightToLeft";
         }
-        catch (Exception exception) when (exception is IOException or InvalidDataException or System.Xml.XmlException or InvalidOperationException)
+        catch (Exception exception) when (exception is not OutOfMemoryException) // archivo roto: se supone cómic normal
         {
             return false;
         }

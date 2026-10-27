@@ -57,7 +57,7 @@ public sealed class ReaderLauncher
                     bool manga = book.Format != BookFormat.Pdf && book.ComicView is null && BookMetadata.IsManga(filePath);
                     return (pages, manga, (string?)null);
                 }
-                catch (Exception exception) when (exception is InvalidDataException or IOException or UnauthorizedAccessException)
+                catch (Exception exception) when (exception is not OutOfMemoryException) // archivo roto o protegido
                 {
                     return ((IPageSource?)null, false, exception.Message);
                 }
