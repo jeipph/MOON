@@ -79,6 +79,10 @@ const bookCss = s => {
     aside[epub|type~="note"],
     aside[epub|type~="rearnote"] {
         display: none;
+    }
+    /* Frase que se está leyendo en voz alta */
+    ::highlight(moon-tts) {
+        background-color: rgba(100, 181, 246, 0.35);
     }`
 }
 
@@ -193,11 +197,95 @@ const open = async ({ url, name, location, settings: s, annotations }) => {
             author: [book.metadata?.author ?? []].flat().map(text).filter(Boolean).join(', '),
             dir: book.dir ?? 'ltr',
             toc: flattenToc(book.toc),
+            language: [book.metadata?.language ?? []].flat()[0] ?? '',
         })
     } catch (error) {
         message('')
         post({ type: 'error', message: String(error?.message ?? error) })
     }
+}
+
+// ---- Lectura en voz alta ----
+// foliate-js divide el capítulo en frases con marcas (<mark name="…">). MOON pide un bloque
+// (un párrafo), genera el audio de cada frase y avisa con 'tts-mark' cuando empieza a sonar.
+
+const TTS_HIGHLIGHT = 'moon-tts'
+
+// Resaltado de la frase que suena (sin tocar el texto: CSS Custom Highlight) y la página la sigue.
+const ttsHighlight = range => {
+    view.renderer.scrollToAnchor?.(range, true)
+    const win = range.startContainer.ownerDocument?.defaultView
+    if (!win?.CSS?.highlights) return
+    win.CSS.highlights.set(TTS_HIGHLIGHT, new win.Highlight(range))
+}
+
+const clearTtsHighlight = () => {
+    for (const { doc } of view?.renderer?.getContents?.() ?? []) doc?.defaultView?.CSS?.highlights?.delete(TTS_HIGHLIGHT)
+}
+
+// SSML → [{ mark, text }]: cada marca empieza una frase.
+const ssmlToItems = ssml => {
+    if (!ssml) return null
+    const doc = new DOMParser().parseFromString(ssml, 'application/xml')
+    const items = []
+    let current = null
+    const walk = node => {
+        for (const child of node.childNodes) {
+            if (child.nodeType === Node.ELEMENT_NODE && child.localName === 'mark') {
+                current = { mark: child.getAttribute('name'), text: '' }
+                items.push(current)
+            } else if (child.nodeType === Node.TEXT_NODE) {
+                if (!current) { current = { mark: null, text: '' }; items.push(current) }
+                current.text += child.textContent
+            } else if (child.nodeType === Node.ELEMENT_NODE) walk(child)
+        }
+    }
+    walk(doc.documentElement)
+    return items.map(i => ({ mark: i.mark, text: i.text.replace(/\s+/g, ' ').trim() })).filter(i => i.text)
+}
+
+const ttsInit = async () => {
+    view.tts = null
+    await view.initTTS('sentence', ttsHighlight)
+}
+
+// Primer bloque: desde lo que se ve en pantalla. Una página sin texto (portada, imagen)
+// no es el final del libro: se sigue con lo siguiente.
+const ttsStart = async () => {
+    await ttsInit()
+    const range = lastLocation?.range
+    let ssml = null
+    try {
+        ssml = range ? view.tts.from(range) : view.tts.start()
+    } catch {
+        ssml = view.tts.start() // la posición no está en este capítulo: desde su principio
+    }
+    if (ssml) await ttsSend(ssml, 0)
+    else await ttsNext(0)
+}
+
+// Siguiente bloque; al terminar el capítulo, pasa al siguiente.
+// `skipped` cuenta bloques o capítulos vacíos seguidos, para no dar vueltas sin fin.
+const ttsNext = async (skipped = 0) => {
+    if (skipped > 50) { post({ type: 'tts-end', error: 'No se encontró texto para leer.' }); return }
+    let ssml = view.tts?.next()
+    if (!ssml) {
+        const before = view.renderer.getContents()[0]?.index
+        await view.renderer.nextSection?.()
+        // Si no cambió de capítulo, era el último: el libro terminó.
+        if (view.renderer.getContents()[0]?.index === before) { post({ type: 'tts-end' }); return }
+        await ttsInit()
+        ssml = view.tts.start()
+        if (!ssml) return ttsNext(skipped + 1) // capítulo sin texto
+    }
+    await ttsSend(ssml, skipped)
+}
+
+const ttsSend = async (ssml, skipped) => {
+    const items = ssmlToItems(ssml) ?? []
+    // Bloques vacíos (imágenes, separadores): se saltan.
+    if (items.length === 0) return ttsNext(skipped + 1)
+    post({ type: 'tts-block', items, chapter: lastLocation?.tocItem?.label?.trim() ?? '' })
 }
 
 // Texto seleccionado → la ventana muestra los colores para subrayar justo debajo.
@@ -254,6 +342,10 @@ host.addEventListener('message', ({ data }) => {
             view?.deleteAnnotation({ value: data.cfi })
             break
         case 'clear-selection': clearSelection(); break
+        case 'tts-start': ttsStart().catch(e => post({ type: 'tts-end', error: String(e?.message ?? e) })); break
+        case 'tts-next': ttsNext().catch(e => post({ type: 'tts-end', error: String(e?.message ?? e) })); break
+        case 'tts-mark': view?.tts?.setMark(data.mark); break
+        case 'tts-stop': clearTtsHighlight(); break
     }
 })
 

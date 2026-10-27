@@ -125,8 +125,17 @@ public partial class ReaderWindow : Window
                 var toc = data.TryGetProperty("toc", out JsonElement items)
                     ? items.EnumerateArray().Select(i => new TocEntry(Text(i, "label") ?? "", Text(i, "href") ?? "", i.GetProperty("depth").GetInt32())).ToList()
                     : [];
-                _viewModel.OnReady(Text(data, "title"), toc);
+                _viewModel.OnReady(Text(data, "title"), toc, Text(data, "language"));
                 Page.Focus();
+                break;
+            case "tts-block":
+                var sentences = data.TryGetProperty("items", out JsonElement list)
+                    ? list.EnumerateArray().Select(i => (Text(i, "mark"), Text(i, "text") ?? "")).ToList()
+                    : [];
+                _viewModel.OnTtsBlock(sentences, Text(data, "chapter") ?? "");
+                break;
+            case "tts-end":
+                _viewModel.OnTtsEnd(Text(data, "error"));
                 break;
             case "relocate":
                 _viewModel.OnRelocate(

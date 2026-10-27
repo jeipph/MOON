@@ -40,6 +40,8 @@
     <None Update="Web\**\*" CopyToOutputDirectory="PreserveNewest" />
     <!-- Diccionario inglés → español (Apertium, GPL-2.0). -->
     <None Update="Data\**\*" CopyToOutputDirectory="PreserveNewest" />
+    <!-- Servicio de voz (Chatterbox, en Python). -->
+    <None Update="Voice\**\*" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
 </Project>

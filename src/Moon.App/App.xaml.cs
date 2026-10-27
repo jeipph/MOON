@@ -71,6 +71,7 @@ public partial class App : Application
         services.AddSingleton(_ => new WebViewHost(
             dataFolder is null ? WebViewHost.DefaultUserDataFolder : Path.Combine(dataFolder, "WebView2")));
         services.AddSingleton<DictionaryService>();
+        services.AddSingleton<VoiceService>();
         services.AddSingleton<ReaderLauncher>();
         services.AddSingleton(_ => new LibraryService(
             new SqliteLibraryStore(dataFolder is null ? SqliteLibraryStore.DefaultPath : Path.Combine(dataFolder, "moon.db")),
@@ -119,6 +120,7 @@ public partial class App : Application
     {
         _services?.GetService<ThemeService>()?.Dispose();
         _services?.GetService<LibraryViewModel>()?.Dispose();
+        _services?.GetService<VoiceService>()?.Dispose(); // cierra el motor de voz
         _services?.Dispose();
         _singleInstance?.Dispose();
         _showSignal?.Dispose();

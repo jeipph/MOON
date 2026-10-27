@@ -29,8 +29,40 @@
         <Grid.RowDefinitions>
             <RowDefinition x:Name="TopRow" Height="{DynamicResource Size.TopBar}" />
             <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
             <RowDefinition x:Name="BottomRow" Height="{DynamicResource Size.ReaderBottom}" />
         </Grid.RowDefinitions>
+
+        <!-- Lectura en voz alta: aparece al pulsar "Escuchar" -->
+        <Border Grid.Row="2"
+                Padding="{DynamicResource Padding.TopBar}"
+                BorderBrush="{DynamicResource Brush.Border}"
+                BorderThickness="0,1,0,0"
+                AutomationProperties.Name="Barra de voz"
+                Visibility="{Binding IsListening, Converter={StaticResource Visible}}">
+            <DockPanel Margin="0,6,0,6">
+                <StackPanel DockPanel.Dock="Left" Orientation="Horizontal" VerticalAlignment="Center">
+                    <Button Style="{StaticResource IconButton}" AutomationProperties.Name="Repetir frase" ToolTip="Repetir la frase"
+                            Command="{Binding RestartSentenceCommand}" Content="&#xE892;" />
+                    <Button Style="{StaticResource IconButton}" AutomationProperties.Name="Pausa o seguir" ToolTip="Pausa / seguir"
+                            Command="{Binding PlayPauseCommand}" Content="&#xE769;" />
+                    <Button Style="{StaticResource IconButton}" AutomationProperties.Name="Frase siguiente" ToolTip="Saltar a la frase siguiente"
+                            Command="{Binding SkipSentenceCommand}" Content="&#xE893;" />
+                </StackPanel>
+                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+                    <ComboBox AutomationProperties.Name="Voz" ToolTip="Voz (añade audios de 10–15 s a la carpeta de voces para tener más)"
+                              ItemsSource="{Binding Voices}" SelectedItem="{Binding SelectedVoice}" MinWidth="150" Margin="{DynamicResource Space.Gap}" />
+                    <ComboBox AutomationProperties.Name="Velocidad" ToolTip="Velocidad"
+                              ItemsSource="{Binding Speeds}" SelectedItem="{Binding SelectedSpeed}" Margin="{DynamicResource Space.Gap}" />
+                    <ComboBox AutomationProperties.Name="Temporizador" ToolTip="Parar de leer después de…"
+                              ItemsSource="{Binding SleepOptions}" SelectedItem="{Binding SelectedSleep}" Margin="{DynamicResource Space.Gap}" />
+                </StackPanel>
+                <TextBlock Margin="{DynamicResource Space.Gap}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"
+                           FontSize="{DynamicResource FontSize.Small}" Foreground="{DynamicResource Brush.TextMuted}"
+                           AutomationProperties.AutomationId="EstadoVoz"
+                           Text="{Binding ReadAloud.Status}" />
+            </DockPanel>
+        </Border>
 
         <!-- Barra superior: índice, título y capítulo, opciones de la página, pantalla completa -->
         <Border Grid.Row="0"
@@ -45,6 +77,11 @@
                               IsChecked="{Binding IsTocOpen}"
                               Content="&#xE8FD;" />
                 <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+                    <ToggleButton Style="{StaticResource IconToggle}"
+                                  AutomationProperties.Name="Escuchar"
+                                  ToolTip="Leer en voz alta desde esta página"
+                                  IsChecked="{Binding IsListening}"
+                                  Content="&#xE767;" />
                     <Button Style="{StaticResource IconButton}"
                             AutomationProperties.Name="Añadir marcador"
                             ToolTip="Marcador en esta página"
@@ -316,7 +353,7 @@
         </Grid>
 
         <!-- Progreso: arrastrar para saltar a otra parte del libro -->
-        <Border Grid.Row="2"
+        <Border Grid.Row="3"
                 Padding="{DynamicResource Padding.TopBar}"
                 BorderBrush="{DynamicResource Brush.Border}"
                 BorderThickness="0,1,0,0">

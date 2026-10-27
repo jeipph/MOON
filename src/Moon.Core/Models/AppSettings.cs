@@ -16,6 +16,18 @@ public sealed record AppSettings
     public ReaderSettings Reader { get; init; } = new();
 
     public ComicSettings Comic { get; init; } = new();
+
+    public VoiceSettings Voice { get; init; } = new();
+}
+
+/// <summary>Lectura en voz alta.</summary>
+public sealed record VoiceSettings
+{
+    /// <summary>Nombre de la voz (archivo de la carpeta de voces) o "" = la primera que haya.</summary>
+    public string Voice { get; init; } = "";
+
+    /// <summary>Velocidad: 1 = normal.</summary>
+    public double Speed { get; init; } = 1.0;
 }
 
 public enum ComicFit

@@ -27,6 +27,7 @@ public sealed partial class ReaderViewModel : ObservableObject, IDisposable
 
     private readonly LibraryService _library;
     private readonly DictionaryService _dictionary;
+    private readonly VoiceService _voice;
     private readonly SettingsService _settings;
     private readonly ThemeService _themes;
     private readonly Timer _saveTimer;
@@ -34,12 +35,14 @@ public sealed partial class ReaderViewModel : ObservableObject, IDisposable
     private (double Fraction, string? Cfi)? _pending;
 
     public ReaderViewModel(Book book, string filePath, LibraryService library, SettingsService settings, ThemeService themes,
-        DictionaryService dictionary)
+        DictionaryService dictionary, VoiceService voice)
     {
         Book = book;
         FilePath = filePath;
         _library = library;
         _dictionary = dictionary;
+        _voice = voice;
+        SelectedSleep = SleepOptions[0];
         _dictionary.Preload();
         _settings = settings;
         _themes = themes;
@@ -57,6 +60,106 @@ public sealed partial class ReaderViewModel : ObservableObject, IDisposable
     /// <summary>Lo seleccionado ahora en la página (null si no hay nada).</summary>
     /// <param name="Paragraph">El párrafo entero, y <paramref name="Offset"/> dónde empieza lo seleccionado.</param>
     public record PageSelection(string Cfi, string Text, string Chapter, double Fraction, string Paragraph = "", int Offset = 0);
+
+    // ---- Lectura en voz alta ----
+
+    /// <summary>Opción de un desplegable: lo que se ve y su valor.</summary>
+    public sealed record Choice<T>(string Label, T Value)
+    {
+        public override string ToString() => Label;
+    }
+
+    private string _language = "";
+
+    public IReadOnlyList<VoiceOption> Voices { get; } = VoiceService.Voices();
+
+    public IReadOnlyList<Choice<double>> Speeds { get; } =
+        [new("0,75×", 0.75), new("1×", 1.0), new("1,25×", 1.25), new("1,5×", 1.5)];
+
+    public IReadOnlyList<Choice<int>> SleepOptions { get; } =
+        [new("Sin temporizador", 0), new("Al terminar el capítulo", -1), new("15 min", 15), new("30 min", 30), new("60 min", 60)];
+
+    /// <summary>La sesión de lectura (se crea la primera vez que se pulsa "Escuchar").</summary>
+    [ObservableProperty]
+    public partial ReadAloudSession? ReadAloud { get; private set; }
+
+    /// <summary>Leyendo en voz alta. Activarlo empieza desde la página que se ve; desactivarlo para.</summary>
+    [ObservableProperty]
+    public partial bool IsListening { get; set; }
+
+    partial void OnIsListeningChanged(bool value)
+    {
+        if (value && ReadAloud is not { IsActive: true })
+            StartListening();
+        else if (!value && ReadAloud is { IsActive: true } active)
+            active.Stop();
+    }
+
+    public VoiceOption SelectedVoice
+    {
+        get => Voices.FirstOrDefault(v => v.Name == _settings.Current.Voice.Voice) ?? Voices[0];
+        set
+        {
+            _settings.Update(s => s with { Voice = s.Voice with { Voice = value.Name } });
+            if (ReadAloud is { } session)
+            {
+                session.Voice = value;
+                if (session.IsActive)
+                    session.Start(); // con la voz nueva desde la frase en pantalla
+            }
+        }
+    }
+
+    public Choice<double> SelectedSpeed
+    {
+        get => Speeds.MinBy(s => Math.Abs(s.Value - _settings.Current.Voice.Speed))!;
+        set
+        {
+            _settings.Update(s => s with { Voice = s.Voice with { Speed = value.Value } });
+            if (ReadAloud is { } session)
+                session.Speed = value.Value;
+        }
+    }
+
+    [ObservableProperty]
+    public partial Choice<int>? SelectedSleep { get; set; }
+
+    partial void OnSelectedSleepChanged(Choice<int>? value) => ReadAloud?.SetSleepTimer(value?.Value ?? 0);
+
+    private void StartListening()
+    {
+        ReadAloud ??= CreateSession();
+        ReadAloud.Voice = SelectedVoice;
+        ReadAloud.Speed = SelectedSpeed.Value;
+        ReadAloud.SetSleepTimer(SelectedSleep?.Value ?? 0);
+        ReadAloud.Start();
+    }
+
+    [RelayCommand]
+    private void PlayPause() => ReadAloud?.TogglePause();
+
+    [RelayCommand]
+    private void SkipSentence() => ReadAloud?.SkipSentence();
+
+    [RelayCommand]
+    private void RestartSentence() => ReadAloud?.RestartSentence();
+
+    private ReadAloudSession CreateSession()
+    {
+        var session = new ReadAloudSession(_voice, message => SendToPage?.Invoke(message), Title, _language);
+        session.PropertyChanged += (_, e) =>
+        {
+            // Al terminar el libro la sesión se para sola: el botón "Escuchar" se desmarca.
+            if (e.PropertyName == nameof(ReadAloudSession.IsActive) && !session.IsActive && session.Status.StartsWith("Fin"))
+                IsListening = false;
+        };
+        return session;
+    }
+
+    public void OnTtsBlock(IEnumerable<(string? Mark, string Text)> items, string chapter) => ReadAloud?.OnBlock(items, chapter);
+
+    /// <param name="error">Si la página falló al preparar las frases (se muestra en vez de "Fin del libro").</param>
+    public void OnTtsEnd(string? error = null) => ReadAloud?.OnBookEnded(error);
 
     // ---- Diccionario ----
 
@@ -280,8 +383,9 @@ public sealed partial class ReaderViewModel : ObservableObject, IDisposable
 
     // ---- Mensajes de la página ----
 
-    public void OnReady(string? title, IEnumerable<TocEntry> toc)
+    public void OnReady(string? title, IEnumerable<TocEntry> toc, string? language = null)
     {
+        _language = language ?? "";
         if (!string.IsNullOrWhiteSpace(title) && Book.Title == System.IO.Path.GetFileNameWithoutExtension(FilePath))
             Title = title; // el archivo no traía título pero el libro sí
         Toc.Clear();
@@ -387,6 +491,7 @@ public sealed partial class ReaderViewModel : ObservableObject, IDisposable
         _settings.Changed -= OnSettingsChanged;
         _themes.Changed -= OnSettingsChanged;
         _saveTimer.Dispose();
+        ReadAloud?.Dispose();
         SavePending(); // lo último leído no se pierde al cerrar
     }
 }
