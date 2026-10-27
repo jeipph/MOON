@@ -1,7 +1,23 @@
 // Lector de MOON: muestra el libro con foliate-js y habla con la ventana (C#) por mensajes.
-//   C# → aquí: { type: 'open' | 'settings' | 'next' | 'prev' | 'goTo' | 'goToFraction', ... }
-//   aquí → C#: { type: 'ready' | 'relocate' | 'key' | 'external-link' | 'error', ... }
+//   C# → aquí: { type: 'open' | 'settings' | 'next' | 'prev' | 'goTo' | 'goToFraction'
+//                | 'highlight' | 'remove-highlight' | 'clear-selection', ... }
+//   aquí → C#: { type: 'ready' | 'relocate' | 'key' | 'external-link' | 'error'
+//                | 'selection' | 'selection-cleared' | 'annotation-clicked', ... }
 import './foliate-js/view.js'
+import { Overlayer } from './foliate-js/overlayer.js'
+
+// Colores de subrayado: deben coincidir con Brush.Highlight.* de Themes/Tokens.Layout.xaml.
+const HIGHLIGHTS = {
+    Yellow: '#ffd54f',
+    Green: '#81c784',
+    Blue: '#64b5f6',
+    Pink: '#f48fb1',
+    Purple: '#ba68c8',
+}
+
+// Subrayados del libro: CFI → color. Se vuelven a dibujar cada vez que se carga un capítulo.
+const highlights = new Map()
+let lastLocation = null
 
 const host = window.chrome.webview
 const post = message => host.postMessage(message)
@@ -119,7 +135,7 @@ const onWheel = e => {
 }
 document.addEventListener('wheel', onWheel, { passive: true })
 
-const open = async ({ url, name, location, settings: s }) => {
+const open = async ({ url, name, location, settings: s, annotations }) => {
     settings = s ?? settings
     applySettings()
     message('Abriendo…')
@@ -131,17 +147,33 @@ const open = async ({ url, name, location, settings: s }) => {
         view = document.createElement('foliate-view')
         document.body.append(view)
         await view.open(file)
-        view.addEventListener('load', ({ detail: { doc } }) => {
+        view.addEventListener('load', ({ detail: { doc, index } }) => {
             doc.addEventListener('keydown', onKey)
             doc.addEventListener('wheel', onWheel, { passive: true })
+            // Al soltar el ratón (o Mayús + flechas) se mira si hay texto seleccionado.
+            const check = () => setTimeout(() => checkSelection(doc, index), 10)
+            doc.addEventListener('pointerup', check)
+            doc.addEventListener('keyup', e => { if (e.shiftKey) check() })
         })
-        view.addEventListener('relocate', ({ detail }) => post({
-            type: 'relocate',
-            cfi: detail.cfi ?? null,
-            fraction: detail.fraction ?? 0,
-            chapter: detail.tocItem?.label?.trim() ?? '',
-            href: detail.tocItem?.href ?? '',
-        }))
+        view.addEventListener('relocate', ({ detail }) => {
+            lastLocation = detail
+            post({
+                type: 'relocate',
+                cfi: detail.cfi ?? null,
+                fraction: detail.fraction ?? 0,
+                chapter: detail.tocItem?.label?.trim() ?? '',
+                href: detail.tocItem?.href ?? '',
+            })
+        })
+        // Subrayados: foliate pide dibujarlos cada vez que un capítulo aparece en pantalla.
+        view.addEventListener('create-overlay', () => {
+            for (const [value, color] of highlights) view.addAnnotation({ value, color })
+        })
+        view.addEventListener('draw-annotation', ({ detail: { draw, annotation } }) => {
+            draw(Overlayer.highlight, { color: HIGHLIGHTS[annotation.color] ?? HIGHLIGHTS.Yellow })
+        })
+        view.addEventListener('show-annotation', ({ detail }) => post({ type: 'annotation-clicked', cfi: detail.value }))
+        for (const h of annotations ?? []) highlights.set(h.cfi, h.color)
         view.addEventListener('external-link', e => {
             e.preventDefault()
             post({ type: 'external-link', href: e.detail.href_ })
@@ -168,6 +200,34 @@ const open = async ({ url, name, location, settings: s }) => {
     }
 }
 
+// Texto seleccionado → la ventana muestra los colores para subrayar justo debajo.
+const checkSelection = (doc, index) => {
+    const selection = doc.getSelection()
+    const text = selection?.toString().trim() ?? ''
+    if (!selection || selection.isCollapsed || !text) {
+        post({ type: 'selection-cleared' })
+        return
+    }
+    const range = selection.getRangeAt(0)
+    const box = range.getBoundingClientRect()
+    const frame = doc.defaultView.frameElement.getBoundingClientRect()
+    post({
+        type: 'selection',
+        cfi: view.getCFI(index, range),
+        text,
+        // Posición en la página de MOON (para colocar el menú de colores).
+        x: frame.left + box.left + box.width / 2,
+        y: frame.top + box.bottom,
+        top: frame.top + box.top,
+        chapter: lastLocation?.tocItem?.label?.trim() ?? '',
+        fraction: lastLocation?.fraction ?? 0,
+    })
+}
+
+const clearSelection = () => {
+    for (const { doc } of view?.renderer?.getContents?.() ?? []) doc?.getSelection()?.removeAllRanges()
+}
+
 host.addEventListener('message', ({ data }) => {
     switch (data?.type) {
         case 'open': open(data); break
@@ -176,6 +236,16 @@ host.addEventListener('message', ({ data }) => {
         case 'prev': view?.goLeft(); break
         case 'goTo': view?.goTo(data.target); break
         case 'goToFraction': view?.goToFraction(data.value); break
+        case 'highlight':
+            highlights.set(data.cfi, data.color)
+            view?.addAnnotation({ value: data.cfi, color: data.color })
+            clearSelection()
+            break
+        case 'remove-highlight':
+            highlights.delete(data.cfi)
+            view?.deleteAnnotation({ value: data.cfi })
+            break
+        case 'clear-selection': clearSelection(); break
     }
 })
 

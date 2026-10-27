@@ -158,6 +158,16 @@ public sealed class LibraryService
     public void SetProgress(long bookId, double progress, string? location = null) =>
         _store.SetProgress(bookId, progress, location, DateTime.Now);
 
+    // ---- Subrayados, marcadores y zonas ----
+
+    public IReadOnlyList<Annotations.Annotation> GetAnnotations(long bookId) => _store.GetAnnotations(bookId);
+
+    public Annotations.Annotation AddAnnotation(Annotations.Annotation annotation) => _store.AddAnnotation(annotation);
+
+    public void UpdateAnnotation(long id, string note, Annotations.HighlightColor color) => _store.UpdateAnnotation(id, note, color);
+
+    public void DeleteAnnotation(long id) => _store.DeleteAnnotation(id);
+
     /// <summary>Recuerda la dirección de lectura y los ajustes de imagen de un cómic.</summary>
     public void SetComicView(long bookId, Comics.ComicView view) => _store.SetComicView(bookId, view.ToJson());
 

@@ -9,7 +9,7 @@ namespace Moon.Core.Library;
 /// </summary>
 public sealed class SqliteLibraryStore
 {
-    private const int SchemaVersion = 3;
+    private const int SchemaVersion = 4;
     private readonly string _connectionString;
 
     public SqliteLibraryStore(string databasePath)
@@ -36,6 +36,26 @@ public sealed class SqliteLibraryStore
             Execute(connection, "ALTER TABLE books ADD COLUMN location TEXT"); // posición exacta (CFI) en el libro
         if (version < 3)
             Execute(connection, "ALTER TABLE books ADD COLUMN comic_view TEXT"); // dirección y ajustes de imagen (JSON)
+        if (version < 4)
+        {
+            // Subrayados, marcadores y zonas de cómic. Se borran con su libro.
+            Execute(connection, """
+                CREATE TABLE annotations (
+                    id          INTEGER PRIMARY KEY,
+                    book_id     INTEGER NOT NULL REFERENCES books(id) ON DELETE CASCADE,
+                    kind        TEXT NOT NULL,
+                    location    TEXT NOT NULL,
+                    text        TEXT NOT NULL DEFAULT '',
+                    note        TEXT NOT NULL DEFAULT '',
+                    color       TEXT NOT NULL,
+                    chapter     TEXT NOT NULL DEFAULT '',
+                    progress    REAL NOT NULL DEFAULT 0,
+                    rect        TEXT,
+                    created_at  TEXT NOT NULL
+                );
+                CREATE INDEX annotations_book ON annotations(book_id);
+                """);
+        }
         Execute(connection, $"PRAGMA user_version = {SchemaVersion}");
     }
 
@@ -198,6 +218,67 @@ public sealed class SqliteLibraryStore
     {
         using SqliteConnection connection = Open();
         Execute(connection, "UPDATE books SET comic_view = $view WHERE id = $id", ("$view", json), ("$id", id));
+    }
+
+    // ---- Anotaciones ----
+
+    public IReadOnlyList<Annotations.Annotation> GetAnnotations(long bookId)
+    {
+        using SqliteConnection connection = Open();
+        using SqliteCommand command = connection.CreateCommand();
+        command.CommandText = """
+            SELECT id, book_id, kind, location, text, note, color, chapter, progress, rect, created_at
+            FROM annotations WHERE book_id = $book ORDER BY progress, created_at
+            """;
+        command.Parameters.AddWithValue("$book", bookId);
+        using SqliteDataReader reader = command.ExecuteReader();
+        var list = new List<Annotations.Annotation>();
+        while (reader.Read())
+        {
+            list.Add(new Annotations.Annotation(
+                reader.GetInt64(0), reader.GetInt64(1), Enum.Parse<Annotations.AnnotationKind>(reader.GetString(2)),
+                reader.GetString(3), reader.GetString(4), reader.GetString(5), Enum.Parse<Annotations.HighlightColor>(reader.GetString(6)),
+                reader.GetString(7), reader.GetDouble(8), ParseDate(reader.GetString(10))!.Value)
+            {
+                Rect = reader.IsDBNull(9) ? null : ParseRect(reader.GetString(9)),
+            });
+        }
+        return list;
+    }
+
+    /// <returns>La anotación con su número asignado.</returns>
+    public Annotations.Annotation AddAnnotation(Annotations.Annotation a)
+    {
+        using SqliteConnection connection = Open();
+        long id = (long)Scalar(connection, """
+            INSERT INTO annotations (book_id, kind, location, text, note, color, chapter, progress, rect, created_at)
+            VALUES ($book, $kind, $location, $text, $note, $color, $chapter, $progress, $rect, $created)
+            RETURNING id
+            """,
+            ("$book", a.BookId), ("$kind", a.Kind.ToString()), ("$location", a.Location), ("$text", a.Text), ("$note", a.Note),
+            ("$color", a.Color.ToString()), ("$chapter", a.Chapter), ("$progress", a.Progress),
+            ("$rect", a.Rect is { } r ? FormattableString.Invariant($"{r.X},{r.Y},{r.Width},{r.Height}") : null),
+            ("$created", FormatDate(a.CreatedAt)))!;
+        return a with { Id = id };
+    }
+
+    public void UpdateAnnotation(long id, string note, Annotations.HighlightColor color)
+    {
+        using SqliteConnection connection = Open();
+        Execute(connection, "UPDATE annotations SET note = $note, color = $color WHERE id = $id",
+            ("$note", note), ("$color", color.ToString()), ("$id", id));
+    }
+
+    public void DeleteAnnotation(long id)
+    {
+        using SqliteConnection connection = Open();
+        Execute(connection, "DELETE FROM annotations WHERE id = $id", ("$id", id));
+    }
+
+    private static Annotations.NormalizedRect? ParseRect(string text)
+    {
+        double[] parts = [.. text.Split(',').Select(p => double.Parse(p, CultureInfo.InvariantCulture))];
+        return parts.Length == 4 ? new Annotations.NormalizedRect(parts[0], parts[1], parts[2], parts[3]) : null;
     }
 
     private SqliteConnection Open()

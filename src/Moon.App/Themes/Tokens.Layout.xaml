@@ -54,6 +54,18 @@
     <SolidColorBrush x:Key="Brush.PageText.Light" Color="#1A1A1A" />
     <SolidColorBrush x:Key="Brush.PageText.Sepia" Color="#3B2F1E" />
     <SolidColorBrush x:Key="Brush.PageText.Dark" Color="#E3E3E3" />
+    <!-- Colores de subrayado (los mismos que HIGHLIGHTS en Web/reader.js) -->
+    <SolidColorBrush x:Key="Brush.Highlight.Yellow" Color="#FFD54F" />
+    <SolidColorBrush x:Key="Brush.Highlight.Green" Color="#81C784" />
+    <SolidColorBrush x:Key="Brush.Highlight.Blue" Color="#64B5F6" />
+    <SolidColorBrush x:Key="Brush.Highlight.Pink" Color="#F48FB1" />
+    <SolidColorBrush x:Key="Brush.Highlight.Purple" Color="#BA68C8" />
+    <sys:Double x:Key="Size.ColorDot">22</sys:Double>
+    <GridLength x:Key="Size.ColorBar.Grid">4</GridLength>
+    <sys:Double x:Key="Size.NoteBox.Height">120</sys:Double>
+    <sys:Double x:Key="Size.NoteDialog.Width">420</sys:Double>
+    <Thickness x:Key="Padding.Annotation">10,8,8,8</Thickness>
+    <Thickness x:Key="Space.ColorDot">3</Thickness>
     <sys:Double x:Key="Size.Reader.Width">1000</sys:Double>
     <sys:Double x:Key="Size.Reader.Height">780</sys:Double>
     <GridLength x:Key="Size.PageArrow">56</GridLength>

@@ -11,6 +11,7 @@ using System.Windows.Media;
 using Microsoft.Web.WebView2.Core;
 using Moon.App.Services;
 using Moon.App.ViewModels;
+using Moon.Core.Annotations;
 using Moon.Core.Models;
 using Moon.Windows.Shell;
 
@@ -46,6 +47,12 @@ public partial class ReaderWindow : Window
                 SelectCurrentChapter();
         };
         _themes.Changed += OnThemeChanged;
+        BuildSelectionBar();
+        _viewModel.Annotations.CollectionChanged += (_, _) => UpdateNotesHint();
+        UpdateNotesHint();
+        // La barra de colores es una ventanita aparte: se esconde si la ventana se mueve o se va.
+        LocationChanged += (_, _) => HideSelectionBar();
+        Deactivated += (_, _) => SelectionPopup.IsOpen = false;
         SourceInitialized += (_, _) => UpdateTitleBar();
         Loaded += async (_, _) => await InitializePageAsync();
         Closed += (_, _) =>
@@ -135,8 +142,148 @@ public partial class ReaderWindow : Window
             case "error":
                 _viewModel.OnError(Text(data, "message") ?? "error desconocido");
                 break;
+            case "selection":
+                ShowSelectionBar(data);
+                break;
+            case "selection-cleared":
+                HideSelectionBar();
+                break;
+            case "annotation-clicked":
+                if (Text(data, "cfi") is { } cfi && _viewModel.FindByLocation(cfi) is { } clicked)
+                    EditNote(clicked);
+                break;
         }
     }
+
+    // ---- Subrayar ----
+
+    // Barra que aparece debajo del texto seleccionado: cinco colores, "Nota" y "Copiar".
+    private void BuildSelectionBar()
+    {
+        foreach (HighlightColor color in Enum.GetValues<HighlightColor>())
+        {
+            var button = new Button
+            {
+                Style = (Style)FindResource("IconButton"),
+                ToolTip = $"Subrayar en {NoteDialog.ColorName(color).ToLowerInvariant()}",
+                Content = new System.Windows.Shapes.Ellipse
+                {
+                    Width = (double)FindResource("Size.ColorDot"),
+                    Height = (double)FindResource("Size.ColorDot"),
+                    Fill = (Brush)FindResource($"Brush.Highlight.{color}"),
+                },
+            };
+            System.Windows.Automation.AutomationProperties.SetName(button, $"Subrayar {NoteDialog.ColorName(color)}");
+            button.Click += (_, _) => { _viewModel.HighlightSelection(color); HideSelectionBar(); };
+            SelectionBar.Children.Add(button);
+        }
+        var note = new Button { Style = (Style)FindResource("ChipButton"), Content = "Nota…", Margin = (Thickness)FindResource("Space.Gap") };
+        note.Click += (_, _) =>
+        {
+            // Una nota siempre va sobre un subrayado (amarillo si no se elige otro).
+            HideSelectionBar();
+            if (_viewModel.HighlightSelection(HighlightColor.Yellow) is { } item)
+                EditNote(item);
+        };
+        var copy = new Button { Style = (Style)FindResource("ChipButton"), Content = "Copiar", Margin = (Thickness)FindResource("Space.Gap") };
+        copy.Click += (_, _) =>
+        {
+            if (_viewModel.Selection is { } s)
+                Clipboard.SetText(s.Text);
+            HideSelectionBar();
+            Send(new { type = "clear-selection" });
+        };
+        SelectionBar.Children.Add(note);
+        SelectionBar.Children.Add(copy);
+    }
+
+    private void ShowSelectionBar(JsonElement data)
+    {
+        string? cfi = Text(data, "cfi");
+        string? text = Text(data, "text");
+        if (cfi is null || string.IsNullOrWhiteSpace(text))
+            return;
+        double Number(string name) => data.TryGetProperty(name, out JsonElement v) && v.ValueKind == JsonValueKind.Number ? v.GetDouble() : 0;
+        _viewModel.Selection = new ReaderViewModel.PageSelection(cfi, text, Text(data, "chapter") ?? "", Number("fraction"));
+
+        SelectionPopup.IsOpen = false; // para que recalcule la posición
+        SelectionBar.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
+        double width = SelectionBar.DesiredSize.Width;
+        double below = Number("y") + 8;
+        // Si no cabe debajo del texto, va encima.
+        double y = below + 48 > Page.ActualHeight ? Number("top") - 56 : below;
+        SelectionPopup.HorizontalOffset = Math.Clamp(Number("x") - width / 2, 0, Math.Max(0, Page.ActualWidth - width));
+        SelectionPopup.VerticalOffset = Math.Max(0, y);
+        SelectionPopup.IsOpen = true;
+    }
+
+    private void HideSelectionBar()
+    {
+        SelectionPopup.IsOpen = false;
+        _viewModel.Selection = null;
+    }
+
+    private void EditNote(AnnotationItemViewModel item)
+    {
+        var dialog = new NoteDialog(this, item.Text, item.Note, item.Annotation.Color,
+            showColors: item.Annotation.Kind != AnnotationKind.Bookmark);
+        switch (dialog.Ask())
+        {
+            case NoteDialogResult.Save:
+                _viewModel.UpdateAnnotation(item, dialog.Note, dialog.Color);
+                break;
+            case NoteDialogResult.Delete:
+                _viewModel.DeleteAnnotation(item);
+                break;
+        }
+        Page.Focus();
+    }
+
+    // ---- Panel de notas ----
+
+    private void OnNoteClicked(object sender, MouseButtonEventArgs e)
+    {
+        if ((e.OriginalSource as DependencyObject)?.FindAncestor<ListBoxItem>()?.DataContext is AnnotationItemViewModel item)
+            _viewModel.GoToAnnotationCommand.Execute(item);
+    }
+
+    private void OnNoteDoubleClicked(object sender, MouseButtonEventArgs e)
+    {
+        if ((e.OriginalSource as DependencyObject)?.FindAncestor<ListBoxItem>()?.DataContext is AnnotationItemViewModel item)
+            EditNote(item);
+    }
+
+    private void OnEditNoteClick(object sender, RoutedEventArgs e)
+    {
+        if (NotesList.SelectedItem is AnnotationItemViewModel item)
+            EditNote(item);
+    }
+
+    private void OnDeleteNoteClick(object sender, RoutedEventArgs e)
+    {
+        if (NotesList.SelectedItem is AnnotationItemViewModel item)
+            _viewModel.DeleteAnnotation(item);
+    }
+
+    private void OnExportClick(object sender, RoutedEventArgs e)
+    {
+        if (_viewModel.Annotations.Count == 0)
+        {
+            MessageBox.Show(this, "Este libro aún no tiene subrayados ni notas.", "MOON");
+            return;
+        }
+        var dialog = new Microsoft.Win32.SaveFileDialog
+        {
+            Title = "Exportar notas",
+            FileName = string.Concat(_viewModel.Title.Split(Path.GetInvalidFileNameChars())) + " - notas",
+            Filter = "Markdown (Obsidian, Notion…)|*.md|CSV (Excel)|*.csv",
+        };
+        if (dialog.ShowDialog(this) == true)
+            _viewModel.Export(dialog.FileName);
+    }
+
+    private void UpdateNotesHint() =>
+        NotesHint.Visibility = _viewModel.Annotations.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
 
     private static string? Text(JsonElement element, string name) =>
         element.TryGetProperty(name, out JsonElement value) && value.ValueKind == JsonValueKind.String ? value.GetString() : null;

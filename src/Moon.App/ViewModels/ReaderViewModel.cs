@@ -2,6 +2,7 @@ using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Moon.App.Services;
+using Moon.Core.Annotations;
 using Moon.Core.Library;
 using Moon.Core.Models;
 
@@ -42,6 +43,100 @@ public sealed partial class ReaderViewModel : ObservableObject, IDisposable
         _saveTimer = new Timer(_ => SavePending());
         _settings.Changed += OnSettingsChanged;
         _themes.Changed += OnSettingsChanged;
+        foreach (Annotation annotation in library.GetAnnotations(book.Id))
+            Annotations.Add(new AnnotationItemViewModel(annotation));
+    }
+
+    // ---- Subrayados, notas y marcadores ----
+
+    /// <summary>Lo seleccionado ahora en la página (null si no hay nada).</summary>
+    public record PageSelection(string Cfi, string Text, string Chapter, double Fraction);
+
+    public ObservableCollection<AnnotationItemViewModel> Annotations { get; } = [];
+
+    [ObservableProperty]
+    public partial bool IsNotesOpen { get; set; }
+
+    [ObservableProperty]
+    public partial PageSelection? Selection { get; set; }
+
+    private string? _currentCfi;
+
+    [RelayCommand]
+    private void ToggleNotes() => IsNotesOpen = !IsNotesOpen;
+
+    /// <summary>Subraya lo seleccionado con ese color.</summary>
+    public AnnotationItemViewModel? HighlightSelection(HighlightColor color)
+    {
+        if (Selection is not { } s)
+            return null;
+        Annotation saved = _library.AddAnnotation(new Annotation(
+            0, Book.Id, AnnotationKind.Highlight, s.Cfi, s.Text, "", color, s.Chapter, s.Fraction, DateTime.Now));
+        var item = new AnnotationItemViewModel(saved);
+        Insert(item);
+        SendToPage?.Invoke(new { type = "highlight", cfi = s.Cfi, color = color.ToString() });
+        Selection = null;
+        return item;
+    }
+
+    /// <summary>Marcador en la página actual.</summary>
+    [RelayCommand]
+    private void AddBookmark()
+    {
+        if (_currentCfi is null)
+            return;
+        Annotation saved = _library.AddAnnotation(new Annotation(
+            0, Book.Id, AnnotationKind.Bookmark, _currentCfi, "", "", HighlightColor.Blue, Chapter, Progress, DateTime.Now));
+        Insert(new AnnotationItemViewModel(saved));
+        IsNotesOpen = true;
+    }
+
+    public void UpdateAnnotation(AnnotationItemViewModel item, string note, HighlightColor color)
+    {
+        _library.UpdateAnnotation(item.Annotation.Id, note, color);
+        int index = Annotations.IndexOf(item);
+        var updated = new AnnotationItemViewModel(item.Annotation with { Note = note, Color = color });
+        if (index >= 0)
+            Annotations[index] = updated;
+        if (item.Annotation.Kind == AnnotationKind.Highlight && color != item.Annotation.Color)
+            SendToPage?.Invoke(new { type = "highlight", cfi = item.Annotation.Location, color = color.ToString() });
+    }
+
+    public void DeleteAnnotation(AnnotationItemViewModel item)
+    {
+        _library.DeleteAnnotation(item.Annotation.Id);
+        Annotations.Remove(item);
+        if (item.Annotation.Kind == AnnotationKind.Highlight)
+            SendToPage?.Invoke(new { type = "remove-highlight", cfi = item.Annotation.Location });
+    }
+
+    public AnnotationItemViewModel? FindByLocation(string cfi) =>
+        Annotations.FirstOrDefault(a => a.Annotation.Location == cfi);
+
+    [RelayCommand]
+    private void GoToAnnotation(AnnotationItemViewModel? item)
+    {
+        if (item is not null)
+            SendToPage?.Invoke(new { type = "goTo", target = item.Annotation.Location });
+    }
+
+    /// <summary>Guarda las notas en Markdown (.md, para Obsidian) o CSV (.csv, para Excel).</summary>
+    public void Export(string path)
+    {
+        var all = Annotations.Select(a => a.Annotation).ToList();
+        string content = path.EndsWith(".csv", StringComparison.OrdinalIgnoreCase)
+            ? AnnotationExporter.ToCsv(Book, all)
+            : AnnotationExporter.ToMarkdown(Book, all);
+        System.IO.File.WriteAllText(path, content);
+    }
+
+    // En el orden del libro, como en el panel.
+    private void Insert(AnnotationItemViewModel item)
+    {
+        int index = 0;
+        while (index < Annotations.Count && Annotations[index].Annotation.Progress <= item.Annotation.Progress)
+            index++;
+        Annotations.Insert(index, item);
     }
 
     public Book Book { get; }
@@ -115,6 +210,9 @@ public sealed partial class ReaderViewModel : ObservableObject, IDisposable
         name = System.IO.Path.GetFileName(FilePath),
         location = Book.Location,
         settings = PageSettings(),
+        annotations = Annotations
+            .Where(a => a.Annotation.Kind == AnnotationKind.Highlight)
+            .Select(a => new { cfi = a.Annotation.Location, color = a.Annotation.Color.ToString() }),
     };
 
     // ---- Mensajes de la página ----
@@ -133,6 +231,7 @@ public sealed partial class ReaderViewModel : ObservableObject, IDisposable
         Progress = fraction;
         Chapter = chapter;
         CurrentHref = href;
+        _currentCfi = cfi ?? _currentCfi;
         lock (_pendingLock)
             _pending = (fraction, cfi);
         _saveTimer.Change(SaveDelay, Timeout.InfiniteTimeSpan);
