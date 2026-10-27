@@ -1,5 +1,7 @@
 using System.IO.Compression;
 using System.Xml.Linq;
+using SharpCompress.Archives;
+using ArchiveOptions = SharpCompress.Readers.ReaderOptions;
 
 namespace Moon.Core.Library;
 
@@ -7,7 +9,8 @@ namespace Moon.Core.Library;
 public sealed record BookMetadata(string Title, string? Author, string? Series, byte[]? Cover)
 {
     /// <summary>Lee lo que se pueda; si el archivo está dañado, al menos devuelve el nombre del archivo como título.</summary>
-    public static BookMetadata Read(string path, BookFormat format)
+    /// <param name="platformReader">Lector para formatos que necesitan Windows (PDF); null si no hay.</param>
+    public static BookMetadata Read(string path, BookFormat format, Func<string, BookFormat, BookMetadata?>? platformReader = null)
     {
         BookMetadata fallback = FromFileName(path);
         try
@@ -15,8 +18,8 @@ public sealed record BookMetadata(string Title, string? Author, string? Series, 
             BookMetadata? read = format switch
             {
                 BookFormat.Epub => ReadEpub(path),
-                BookFormat.Cbz => ReadComicZip(path),
-                _ => null,
+                BookFormat.Cbz or BookFormat.Cbr or BookFormat.Cb7 => ReadComic(path),
+                _ => platformReader?.Invoke(path, format),
             };
             if (read is null)
                 return fallback;
@@ -82,10 +85,18 @@ public sealed record BookMetadata(string Title, string? Author, string? Series, 
     }
 
     // CBZ = ZIP de imágenes, con ComicInfo.xml opcional. La portada es la primera imagen en orden natural.
-    private static BookMetadata ReadComicZip(string path)
+    // CBZ/CBR/CB7 = ZIP/RAR/7Z de imágenes. SharpCompress abre los tres.
+    private static BookMetadata ReadComic(string path)
     {
-        using ZipArchive zip = ZipFile.OpenRead(path);
-        XDocument? info = LoadXml(zip, "ComicInfo.xml");
+        using IArchive archive = ArchiveFactory.OpenArchive(path, new ArchiveOptions());
+        var files = archive.Entries.Where(e => !e.IsDirectory && e.Key is not null).ToList();
+        IArchiveEntry? infoEntry = files.FirstOrDefault(e => Path.GetFileName(e.Key!).Equals("ComicInfo.xml", StringComparison.OrdinalIgnoreCase));
+        XDocument? info = null;
+        if (infoEntry is not null)
+        {
+            using Stream stream = infoEntry.OpenEntryStream();
+            info = XDocument.Load(stream);
+        }
         string? title = info?.Root?.Element("Title")?.Value;
         string? series = info?.Root?.Element("Series")?.Value;
         string? number = info?.Root?.Element("Number")?.Value;
@@ -93,12 +104,38 @@ public sealed record BookMetadata(string Title, string? Author, string? Series, 
         if (string.IsNullOrWhiteSpace(title) && !string.IsNullOrWhiteSpace(series))
             title = string.IsNullOrWhiteSpace(number) ? series : $"{series} #{number}";
 
-        ZipArchiveEntry? first = zip.Entries
-            .Where(e => IsPageImage(e.FullName))
-            .OrderBy(e => e.FullName, NaturalSort.Instance)
+        IArchiveEntry? first = files
+            .Where(e => IsPageImage(e.Key!))
+            .OrderBy(e => e.Key, NaturalSort.Instance)
             .FirstOrDefault();
-        byte[]? cover = first is null ? null : ReadAll(first);
+        byte[]? cover = null;
+        if (first is not null)
+        {
+            using Stream stream = first.OpenEntryStream();
+            using var memory = new MemoryStream();
+            stream.CopyTo(memory);
+            cover = memory.ToArray();
+        }
         return new BookMetadata(title?.Trim() ?? "", writer?.Trim(), series?.Trim(), cover);
+    }
+
+    /// <summary>¿Es un manga (se lee de derecha a izquierda)? Lo dice ComicInfo.xml si lo trae.</summary>
+    public static bool IsManga(string path)
+    {
+        try
+        {
+            using IArchive archive = ArchiveFactory.OpenArchive(path, new ArchiveOptions());
+            IArchiveEntry? entry = archive.Entries.FirstOrDefault(e => e.Key is not null && Path.GetFileName(e.Key).Equals("ComicInfo.xml", StringComparison.OrdinalIgnoreCase));
+            if (entry is null)
+                return false;
+            using Stream stream = entry.OpenEntryStream();
+            string? manga = XDocument.Load(stream).Root?.Element("Manga")?.Value;
+            return manga is "Yes" or "YesAndRightToLeft";
+        }
+        catch (Exception exception) when (exception is IOException or InvalidDataException or System.Xml.XmlException or InvalidOperationException)
+        {
+            return false;
+        }
     }
 
     /// <summary>Imagen de página: se ignoran carpetas de macOS y archivos ocultos.</summary>

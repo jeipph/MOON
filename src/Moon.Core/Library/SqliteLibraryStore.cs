@@ -9,7 +9,7 @@ namespace Moon.Core.Library;
 /// </summary>
 public sealed class SqliteLibraryStore
 {
-    private const int SchemaVersion = 2;
+    private const int SchemaVersion = 3;
     private readonly string _connectionString;
 
     public SqliteLibraryStore(string databasePath)
@@ -34,6 +34,8 @@ public sealed class SqliteLibraryStore
             CreateVersion1(connection);
         if (version < 2)
             Execute(connection, "ALTER TABLE books ADD COLUMN location TEXT"); // posición exacta (CFI) en el libro
+        if (version < 3)
+            Execute(connection, "ALTER TABLE books ADD COLUMN comic_view TEXT"); // dirección y ajustes de imagen (JSON)
         Execute(connection, $"PRAGMA user_version = {SchemaVersion}");
     }
 
@@ -110,7 +112,7 @@ public sealed class SqliteLibraryStore
         using SqliteCommand command = connection.CreateCommand();
         command.CommandText = """
             SELECT id, source_id, relative_path, file_key, format, size, modified, title, author, series,
-                   has_cover, added_at, last_opened_at, progress, location
+                   has_cover, added_at, last_opened_at, progress, location, comic_view
             FROM books ORDER BY title COLLATE NOCASE
             """;
         using SqliteDataReader reader = command.ExecuteReader();
@@ -125,6 +127,7 @@ public sealed class SqliteLibraryStore
                 reader.IsDBNull(12) ? null : ParseDate(reader.GetString(12)), reader.GetDouble(13))
             {
                 Location = reader.IsDBNull(14) ? null : reader.GetString(14),
+                ComicView = reader.IsDBNull(15) ? null : reader.GetString(15),
             });
         }
         return books;
@@ -189,6 +192,13 @@ public sealed class SqliteLibraryStore
     }
 
     // ---- Ayudas ----
+
+    /// <summary>Dirección de lectura y ajustes de imagen de un cómic (JSON de <see cref="Comics.ComicView"/>).</summary>
+    public void SetComicView(long id, string json)
+    {
+        using SqliteConnection connection = Open();
+        Execute(connection, "UPDATE books SET comic_view = $view WHERE id = $id", ("$view", json), ("$id", id));
+    }
 
     private SqliteConnection Open()
     {

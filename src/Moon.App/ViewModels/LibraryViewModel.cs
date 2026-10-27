@@ -133,7 +133,7 @@ public sealed partial class LibraryViewModel : ObservableObject, IDisposable
     }
 
     [RelayCommand]
-    private void OpenBook(BookItemViewModel? book)
+    private async Task OpenBook(BookItemViewModel? book)
     {
         if (book is null)
             return;
@@ -145,16 +145,15 @@ public sealed partial class LibraryViewModel : ObservableObject, IDisposable
         string? path = _library.FullPath(book.Book);
         if (path is null || !File.Exists(path))
         {
-            Status = $"No se encuentra el archivo de \"{book.Title}\". Pulsa F5 o espera a que MOON revise la carpeta.";
+            Status = $"No se encuentra el archivo de \"{book.Title}\". MOON revisará la carpeta en unos segundos.";
+            RequestSync();
             return;
         }
-        if (!book.Book.CanBeRead)
-        {
-            // CBR/CB7 llegan con los cómics (L4) y PDF en L10.
-            Status = $"MOON todavía no sabe abrir archivos {book.FormatLabel}. Llegará pronto.";
-            return;
-        }
-        _reader.Open(book.Book, path);
+        // Se usa el libro recién leído de la base de datos (con su última página y ajustes).
+        Book current = _library.Books.FirstOrDefault(b => b.Id == book.Book.Id) ?? book.Book;
+        string? error = await _reader.OpenAsync(current, path);
+        if (error is not null)
+            Status = error;
     }
 
     [RelayCommand]

@@ -75,7 +75,8 @@ public partial class App : Application
             new SqliteLibraryStore(dataFolder is null ? SqliteLibraryStore.DefaultPath : Path.Combine(dataFolder, "moon.db")),
             dataFolder is null ? LibraryService.DefaultManagedFolder : Path.Combine(dataFolder, "Biblioteca"),
             dataFolder is null ? LibraryService.DefaultCoversFolder : Path.Combine(dataFolder, "covers"),
-            LibraryService.CurrentDrives));
+            LibraryService.CurrentDrives,
+            Moon.Windows.Comics.PdfPageSource.ReadMetadata)); // portada de los PDF
         services.AddSingleton<LibraryWatcher>();
         services.AddSingleton<LibraryDialogs>();
         services.AddSingleton<LibraryViewModel>();

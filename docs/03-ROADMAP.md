@@ -23,15 +23,15 @@ Experimentos pequeños y desechables, en `spikes/`. Documentar el resultado aqu�
 - *Verificado por Claude (2026-10-27): compila sin avisos, 5 pruebas, capturas en oscuro y claro, segunda apertura no crea otro proceso. Falta que lo vea la persona.*
 
 ## L2 — Lector de cómics básico (≈4 h)
-- [ ] Tests: `NaturalSort`, `ReadingDirection`, `SpreadLayout`.
-- [ ] `ArchivePageProvider` (CBZ/ZIP) con SharpCompress; `FolderPageProvider`.
-- [ ] Vista de una página; teclas ← →, Re Pág/Av Pág; zoom con la rueda; ajustar a ancho/alto.
-- [ ] Doble página y dirección RTL/LTR; modo webtoon (si S3 salió bien).
-- [ ] Prelectura ±3 páginas; liberar memoria.
-- [ ] Pantalla completa (F11) con barras que se ocultan.
-- [ ] **Ajustes de imagen** para escaneos: brillo, contraste, gamma y "quitar amarillo" (papel viejo). Por libro, sin tocar el archivo original.
-
-**Terminado cuando:** un CBZ de 200 páginas se lee con fluidez y la RAM no crece sin control al avanzar.
+- [x] Tests: `NaturalSort`, `SpreadLayout` (portada sola, panorámicas solas, manga a la derecha), `ImageAdjustments`, `ComicView`, fuentes de páginas.
+- [x] `IPageSource`: ZIP (System.IO.Compression), RAR/7Z (SharpCompress 0.50), carpetas; se mira el contenido y no la extensión (un ".cbr" que es ZIP también abre). **PDF como imágenes** con `Windows.Data.Pdf` (sin descargas): adelantado de L10 porque la persona lee manga en PDF.
+- [x] Una página / doble / webtoon; ajustar a la página o al ancho; zoom 100–400 % (Ctrl + rueda, Ctrl +/−/0) y arrastrar para mover.
+- [x] Dirección por cómic: cómic → o manga ← (si `ComicInfo.xml` dice Manga, empieza en ←); en manga la barra de páginas va al revés.
+- [x] Teclas ← → (al revés en manga), Espacio/Av Pág (baja y luego pasa), Re Pág, Inicio/Fin; clic en el tercio izquierdo/derecho; rueda.
+- [x] Caché de 8 páginas decodificadas al tamaño de pantalla + prelectura de ±2; en webtoon solo se cargan las páginas visibles.
+- [x] Pantalla completa (F11 / Esc).
+- [x] **Ajustes de imagen** por cómic (brillo, contraste, gamma, "quitar amarillo"), sin tocar el archivo; columna `comic_view` (base de datos versión 3).
+- *Verificado por Claude (2026-10-27) con los archivos de la persona: The Walking Dead #001 (CBR, 42 págs.) y Saga Sword&Shield tomo 2 (PDF, 146 págs.): abrir, pasar, doble, ajustes, webtoon, manga ←, recordar la página. Memoria: ~330–375 MB con un cómic abierto. Falta que lo vea la persona.*
 
 ## L3 — Biblioteca y progreso (≈4 h)
 Decisión (2026-10-27): **dos formas de meter libros**: "Añadir libros…" **copia** a `Documentos\MOON\Biblioteca`; "Enlazar carpeta…" **lee en su sitio** (p. ej. un disco externo). También arrastrando archivos (se copian) o carpetas (se enlazan).
@@ -45,7 +45,7 @@ Decisión (2026-10-27): **dos formas de meter libros**: "Añadir libros…" **co
 - [ ] **Open Library** (sin cuenta ni clave): portada, autor y año de los libros que no los traen. Solo al pulsar "Buscar datos", con caché local. Se puede desactivar.
 
 ## L4 — CBR/RAR/7Z (≈1.5 h)
-- [ ] Soporte RAR/CB7 con SharpCompress; mensaje claro si un archivo está corrupto o cifrado.
+- [x] Soporte RAR/CB7 con SharpCompress (portada y `ComicInfo.xml` en la biblioteca también); mensaje claro si un archivo está dañado, cifrado o sin imágenes. Hecho junto con L2.
 
 ## L5 — Libros EPUB (≈5 h) *(según resultado de S2)*
 - [x] `ReaderWindow` (una ventana por libro) con WebView2 y `Web/reader.html` + `reader.js` + foliate-js. Abre también MOBI, AZW3, FB2 (sin DRM) y CBZ.
@@ -95,7 +95,8 @@ Decisión (2026-10-27): **dos formas de meter libros**: "Añadir libros…" **co
 - [ ] Lista "Cosas por investigar" con recortes y notas.
 
 ## L10 — PDF (≈4 h)
-- [ ] Visor PDF (PDF.js en WebView2 o alternativa decidida).
+- [x] (Adelantado en L2) PDF como páginas de imagen en el lector de cómics, con `Windows.Data.Pdf`. Portada en la biblioteca.
+- [ ] Visor PDF con texto seleccionable (PDF.js en WebView2 o alternativa decidida).
 - [ ] Resaltado de texto y notas con coordenadas.
 
 ## L11 — Traducción (≈2 h)

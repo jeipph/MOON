@@ -14,6 +14,28 @@ public sealed record AppSettings
     public AppTheme Theme { get; init; } = AppTheme.System;
 
     public ReaderSettings Reader { get; init; } = new();
+
+    public ComicSettings Comic { get; init; } = new();
+}
+
+public enum ComicFit
+{
+    /// <summary>Se ve la página entera.</summary>
+    Page,
+
+    /// <summary>La página ocupa todo el ancho (se desplaza hacia abajo).</summary>
+    Width,
+}
+
+/// <summary>Cómo se ven los cómics y el manga. Iguales para todos; la dirección y los ajustes de imagen van por cómic.</summary>
+public sealed record ComicSettings
+{
+    public Moon.Core.Comics.PageLayout Layout { get; init; } = Moon.Core.Comics.PageLayout.Single;
+
+    public ComicFit Fit { get; init; } = ComicFit.Page;
+
+    /// <summary>En doble página, la portada va sola (como un tomo de verdad).</summary>
+    public bool CoverAlone { get; init; } = true;
 }
 
 /// <summary>Color de la página del libro (independiente del tema de la ventana).</summary>

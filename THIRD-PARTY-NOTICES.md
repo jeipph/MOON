@@ -8,6 +8,7 @@ MOON usa estas bibliotecas. Todas permiten usarlas en un programa propio; aquí 
 | [zip.js](https://github.com/gildas-lormeau/zip.js) (2.7.x, dentro de foliate-js `vendor/zip.js`) | Leer archivos ZIP en el lector | BSD-3-Clause | © 2023 Gildas Lormeau |
 | [fflate](https://github.com/101arrowz/fflate) (0.8.x, dentro de foliate-js `vendor/fflate.js`) | Descomprimir fuentes de libros Kindle | MIT | © 2023 Arjun Barrett |
 | [Microsoft.Web.WebView2](https://www.nuget.org/packages/Microsoft.Web.WebView2) 1.0.4314.35 | El "navegador" interno donde se ve la página | Licencia BSD de Microsoft (ver el paquete) | © Microsoft Corporation |
+| [SharpCompress](https://github.com/adamhathcock/sharpcompress) 0.50.7 | Abrir cómics CBR (RAR) y CB7 (7Z) | MIT | © 2014 Adam Hathcock |
 | [Microsoft.Data.Sqlite](https://github.com/dotnet/efcore) 10.0.14 | Base de datos de la biblioteca | MIT | © .NET Foundation and Contributors |
 | [CommunityToolkit.Mvvm](https://github.com/CommunityToolkit/dotnet) 8.4.2 | MVVM | MIT | © .NET Foundation and Contributors |
 | [Microsoft.Extensions.DependencyInjection](https://github.com/dotnet/runtime) 10.0.14 | Unir las piezas de la app | MIT | © .NET Foundation and Contributors |

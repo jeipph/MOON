@@ -33,8 +33,14 @@ public sealed record Book(
     /// <summary>Dónde se quedó la lectura (CFI en EPUB). Null = nunca abierto.</summary>
     public string? Location { get; init; }
 
-    /// <summary>Formatos que el lector de libros ya sabe abrir.</summary>
-    public bool CanBeRead => Format is BookFormat.Epub or BookFormat.Mobi or BookFormat.Azw3 or BookFormat.Fb2 or BookFormat.Cbz;
+    /// <summary>Dirección y ajustes de imagen guardados (JSON); null = nunca abierto como cómic.</summary>
+    public string? ComicView { get; init; }
+
+    /// <summary>Se abre en el lector de libros (texto que se reacomoda).</summary>
+    public bool OpensAsBook => Format is BookFormat.Epub or BookFormat.Mobi or BookFormat.Azw3 or BookFormat.Fb2;
+
+    /// <summary>Se abre en el lector de cómics (páginas de imagen). Los PDF también, de momento.</summary>
+    public bool OpensAsComic => BookFormats.IsComic(Format) || Format == BookFormat.Pdf;
 }
 
 /// <summary>Un archivo encontrado al recorrer una carpeta. <paramref name="Modified"/> en UTC.</summary>

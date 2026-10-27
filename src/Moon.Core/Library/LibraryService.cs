@@ -23,15 +23,19 @@ public sealed class LibraryService
     private readonly string _managedFolder;
     private readonly string _coversFolder;
     private readonly Func<IEnumerable<DriveSnapshot>> _drives;
+    private readonly Func<string, BookFormat, BookMetadata?>? _platformReader;
     private readonly Lock _lock = new();
     private Dictionary<long, string?> _currentPaths = [];
 
-    public LibraryService(SqliteLibraryStore store, string managedFolder, string coversFolder, Func<IEnumerable<DriveSnapshot>> drives)
+    /// <param name="platformReader">Lee portada y datos de formatos que necesitan Windows (PDF).</param>
+    public LibraryService(SqliteLibraryStore store, string managedFolder, string coversFolder, Func<IEnumerable<DriveSnapshot>> drives,
+        Func<string, BookFormat, BookMetadata?>? platformReader = null)
     {
         _store = store;
         _managedFolder = managedFolder;
         _coversFolder = coversFolder;
         _drives = drives;
+        _platformReader = platformReader;
     }
 
     public static string DefaultManagedFolder => Path.Combine(
@@ -154,6 +158,9 @@ public sealed class LibraryService
     public void SetProgress(long bookId, double progress, string? location = null) =>
         _store.SetProgress(bookId, progress, location, DateTime.Now);
 
+    /// <summary>Recuerda la dirección de lectura y los ajustes de imagen de un cómic.</summary>
+    public void SetComicView(long bookId, Comics.ComicView view) => _store.SetComicView(bookId, view.ToJson());
+
     /// <summary>"Continuar leyendo": abiertos y sin terminar, el último primero.</summary>
     public static IEnumerable<Book> ContinueReading(IEnumerable<Book> books) =>
         books.Where(b => b.LastOpenedAt is not null && b.Progress < 0.995)
@@ -199,7 +206,7 @@ public sealed class LibraryService
         foreach (ScannedFile file in changes.Added)
         {
             progress?.Report($"Leyendo libros… {++done} de {changes.Added.Count}");
-            BookMetadata metadata = BookMetadata.Read(Path.Combine(paths[file.SourceId]!, file.RelativePath), file.Format);
+            BookMetadata metadata = BookMetadata.Read(Path.Combine(paths[file.SourceId]!, file.RelativePath), file.Format, _platformReader);
             long id = _store.AddBook(file, metadata, DateTime.Now);
             SaveCover(id, metadata.Cover);
         }
@@ -207,7 +214,7 @@ public sealed class LibraryService
             _store.MoveBook(book.Id, file);
         foreach (var (book, file) in changes.Changed)
         {
-            BookMetadata metadata = BookMetadata.Read(Path.Combine(paths[file.SourceId]!, file.RelativePath), file.Format);
+            BookMetadata metadata = BookMetadata.Read(Path.Combine(paths[file.SourceId]!, file.RelativePath), file.Format, _platformReader);
             _store.UpdateBookFile(book.Id, file, metadata);
             SaveCover(book.Id, metadata.Cover);
         }

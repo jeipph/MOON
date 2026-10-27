@@ -231,6 +231,39 @@
         </Setter>
     </Style>
 
+    <!-- Opción que se activa y desactiva sola (por ejemplo "Quitar amarillo"). Se ve como ChoiceChip. -->
+    <Style x:Key="ChoiceToggle" TargetType="ToggleButton">
+        <Setter Property="Foreground" Value="{DynamicResource Brush.TextMuted}" />
+        <Setter Property="FontFamily" Value="{DynamicResource Font.Main}" />
+        <Setter Property="FontSize" Value="{DynamicResource FontSize.Small}" />
+        <Setter Property="Margin" Value="{DynamicResource Space.ChoiceGap}" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ToggleButton">
+                    <Border x:Name="Background"
+                            Background="Transparent"
+                            BorderBrush="{DynamicResource Brush.Border}"
+                            BorderThickness="1"
+                            CornerRadius="{DynamicResource Radius.Control}"
+                            Padding="{DynamicResource Padding.Chip}">
+                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Background" Property="Background" Value="{DynamicResource Brush.SurfaceHover}" />
+                        </Trigger>
+                        <Trigger Property="IsChecked" Value="True">
+                            <Setter TargetName="Background" Property="Background" Value="{DynamicResource Brush.Surface}" />
+                            <Setter TargetName="Background" Property="BorderBrush" Value="{DynamicResource Brush.Text}" />
+                            <Setter Property="Foreground" Value="{DynamicResource Brush.Text}" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
     <!-- Botón de icono que se queda marcado (Índice abierto, Aa abierto). -->
     <Style x:Key="IconToggle" TargetType="ToggleButton">
         <Setter Property="Width" Value="{DynamicResource Size.IconButton}" />
@@ -269,7 +302,7 @@
                 <ControlTemplate TargetType="Slider">
                     <Grid VerticalAlignment="Center" Background="Transparent" Height="{DynamicResource Size.SliderHit}">
                         <Border Height="{DynamicResource Size.Progress}" Background="{DynamicResource Brush.Border}" CornerRadius="2" />
-                        <Track x:Name="PART_Track">
+                        <Track x:Name="PART_Track" IsDirectionReversed="{TemplateBinding IsDirectionReversed}">
                             <Track.DecreaseRepeatButton>
                                 <RepeatButton Command="Slider.DecreaseLarge" Focusable="False">
                                     <RepeatButton.Template>
