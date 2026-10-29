@@ -40,6 +40,11 @@
             <DockPanel>
                 <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
                     <ToggleButton Style="{StaticResource ChoiceToggle}"
+                                  AutomationProperties.Name="Leer texto"
+                                  ToolTip="Recuadra un bocadillo para leer su texto y buscar sus palabras en el diccionario (sin internet)"
+                                  IsChecked="{Binding IsReadingText}"
+                                  Content="Leer texto" />
+                    <ToggleButton Style="{StaticResource ChoiceToggle}"
                                   AutomationProperties.Name="Marcar zona"
                                   ToolTip="Arrastra sobre la página para marcar una zona y escribir una nota"
                                   IsChecked="{Binding IsMarking}"
@@ -195,6 +200,108 @@
                     </ListBox.ContextMenu>
                 </ListBox>
             </DockPanel>
+        </Border>
+
+        <!-- Leer texto: lo que leyó el OCR (editable), diccionario y guardar -->
+        <Border Grid.Row="1"
+                DataContext="{Binding Ocr}"
+                HorizontalAlignment="Left"
+                VerticalAlignment="Bottom"
+                Panel.ZIndex="2"
+                Margin="{DynamicResource Margin.OcrPanel}"
+                Width="{DynamicResource Size.LookupPopup}"
+                Padding="{DynamicResource Padding.Popup}"
+                Background="{DynamicResource Brush.Background}"
+                BorderBrush="{DynamicResource Brush.Border}"
+                BorderThickness="1"
+                CornerRadius="{DynamicResource Radius.Control}"
+                AutomationProperties.Name="Texto leído"
+                Visibility="{Binding IsOpen, Converter={StaticResource Visible}}">
+            <StackPanel>
+                <DockPanel>
+                    <Button DockPanel.Dock="Right" Style="{StaticResource IconButton}" AutomationProperties.Name="Cerrar"
+                            ToolTip="Cerrar" Command="{Binding CloseCommand}" Content="&#xE711;" />
+                    <ComboBox DockPanel.Dock="Right" AutomationProperties.Name="Idioma del texto" ToolTip="Idioma del texto"
+                              ItemsSource="{Binding Languages}" SelectedItem="{Binding Language}"
+                              MaxWidth="170" VerticalAlignment="Center" Margin="{DynamicResource Space.Gap}" />
+                    <TextBlock Text="{Binding Heading}" VerticalAlignment="Center"
+                               FontSize="{DynamicResource FontSize.Small}" Foreground="{DynamicResource Brush.TextMuted}" />
+                </DockPanel>
+
+                <TextBox x:Name="OcrTextBox"
+                         AutomationProperties.Name="Texto del bocadillo"
+                         AutomationProperties.AutomationId="TextoOcr"
+                         Margin="{DynamicResource Space.Above}"
+                         Height="{DynamicResource Size.OcrText.Height}"
+                         Text="{Binding Text, UpdateSourceTrigger=PropertyChanged}"
+                         AcceptsReturn="True"
+                         TextWrapping="Wrap"
+                         VerticalScrollBarVisibility="Auto"
+                         Background="{DynamicResource Brush.Surface}"
+                         Foreground="{DynamicResource Brush.Text}"
+                         CaretBrush="{DynamicResource Brush.Text}"
+                         BorderBrush="{DynamicResource Brush.Border}"
+                         Padding="{DynamicResource Padding.Field}"
+                         ToolTip="Haz clic o doble clic en una palabra para traducirla. Puedes corregir el texto."
+                         SelectionChanged="OnOcrSelectionChanged" />
+
+                <TextBlock Margin="{DynamicResource Space.Above}" TextWrapping="Wrap"
+                           FontSize="{DynamicResource FontSize.Small}" Foreground="{DynamicResource Brush.TextMuted}"
+                           AutomationProperties.AutomationId="EstadoOcr"
+                           Text="{Binding Status}" Visibility="{Binding HasStatus, Converter={StaticResource Visible}}" />
+                <TextBlock Margin="{DynamicResource Space.Above}" TextWrapping="Wrap"
+                           FontSize="{DynamicResource FontSize.Small}" Foreground="{DynamicResource Brush.TextMuted}"
+                           Visibility="{Binding IsEnglishMissing, Converter={StaticResource Visible}}">
+                    Falta el OCR en inglés y se lee peor. Instálalo en Configuración → Hora e idioma → Idioma y región → Agregar un idioma → English (United States).
+                    <Hyperlink Click="OnCopyOcrCommandClick">Copiar comando para PowerShell (administrador)</Hyperlink>
+                </TextBlock>
+
+                <!-- Diccionario inglés → español -->
+                <StackPanel Margin="{DynamicResource Space.Above}"
+                            AutomationProperties.Name="Diccionario"
+                            Visibility="{Binding HasLookup, Converter={StaticResource Visible}}">
+                    <DockPanel>
+                        <Button DockPanel.Dock="Right"
+                                Style="{StaticResource ChipButton}"
+                                AutomationProperties.Name="Guardar palabra"
+                                ToolTip="Guardar en tu vocabulario con esta frase"
+                                Command="{Binding SaveWordCommand}">
+                            <Button.Content>
+                                <TextBlock>
+                                    <TextBlock.Style>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="Text" Value="Guardar palabra" />
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding WordSaved}" Value="True">
+                                                    <Setter Property="Text" Value="✓ Guardada" />
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBlock.Style>
+                                </TextBlock>
+                            </Button.Content>
+                        </Button>
+                        <TextBlock Text="{Binding LookupTitle}" FontWeight="SemiBold" VerticalAlignment="Center"
+                                   AutomationProperties.AutomationId="PalabraBuscada" TextTrimming="CharacterEllipsis" />
+                    </DockPanel>
+                    <ItemsControl ItemsSource="{Binding LookupSenses}" Margin="{DynamicResource Space.AboveSmall}"
+                                  AutomationProperties.AutomationId="Traducciones">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <TextBlock Text="{Binding}" TextWrapping="Wrap" FontSize="{DynamicResource FontSize.Small}" />
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
+
+                <WrapPanel Margin="{DynamicResource Space.Above}">
+                    <Button Style="{StaticResource ChipButton}" Content="Copiar" AutomationProperties.Name="Copiar texto"
+                            Command="{Binding CopyCommand}" />
+                    <Button Style="{StaticResource ChipButton}" Content="Guardar como zona" AutomationProperties.Name="Guardar como zona"
+                            ToolTip="Guarda el recuadro en tus notas, con este texto"
+                            Command="{Binding SaveAsRegionCommand}" />
+                </WrapPanel>
+            </StackPanel>
         </Border>
 
         <!-- Páginas -->

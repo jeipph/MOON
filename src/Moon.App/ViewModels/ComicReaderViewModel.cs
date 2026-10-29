@@ -6,6 +6,7 @@ using Moon.Core.Annotations;
 using Moon.Core.Comics;
 using Moon.Core.Library;
 using Moon.Core.Models;
+using Moon.Core.Ocr;
 
 namespace Moon.App.ViewModels;
 
@@ -26,12 +27,15 @@ public sealed partial class ComicReaderViewModel : ObservableObject, IDisposable
     private ComicView _view;
     private int _pendingSavePage = -1;
 
-    public ComicReaderViewModel(Book book, PageImages pages, LibraryService library, SettingsService settings, bool isManga)
+    public ComicReaderViewModel(Book book, PageImages pages, LibraryService library, SettingsService settings, bool isManga,
+        IOcrEngine ocr, DictionaryService dictionary)
     {
         Book = book;
         Pages = pages;
         _library = library;
         _settings = settings;
+        Ocr = new OcrPanelViewModel(ocr, pages, dictionary, library, settings, book);
+        Ocr.SaveAsRegionRequested += (page, rect, text) => AddRegion(page, rect, text, HighlightColor.Blue);
         _view = Core.Comics.ComicView.FromJson(book.ComicView) ?? Core.Comics.ComicView.Default(isManga);
         Title = book.Title;
         _saveTimer = new Timer(_ => SaveProgress());
@@ -51,6 +55,28 @@ public sealed partial class ComicReaderViewModel : ObservableObject, IDisposable
     /// <summary>Modo "Marcar zona": arrastrar sobre la página dibuja un rectángulo en vez de moverla.</summary>
     [ObservableProperty]
     public partial bool IsMarking { get; set; }
+
+    /// <summary>Modo "Leer texto": el rectángulo que se arrastra se lee con el OCR.</summary>
+    [ObservableProperty]
+    public partial bool IsReadingText { get; set; }
+
+    /// <summary>Se está arrastrando un rectángulo (para una zona o para leer texto).</summary>
+    public bool IsSelectingRegion => IsMarking || IsReadingText;
+
+    // Los dos modos se excluyen: activar uno apaga el otro.
+    partial void OnIsMarkingChanged(bool value)
+    {
+        if (value) IsReadingText = false;
+        OnPropertyChanged(nameof(IsSelectingRegion));
+    }
+
+    partial void OnIsReadingTextChanged(bool value)
+    {
+        if (value) IsMarking = false;
+        OnPropertyChanged(nameof(IsSelectingRegion));
+    }
+
+    public OcrPanelViewModel Ocr { get; }
 
     /// <summary>Se avisa cuando cambian las zonas (para redibujarlas).</summary>
     public event EventHandler? RegionsChanged;

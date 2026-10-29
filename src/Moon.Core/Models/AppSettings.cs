@@ -18,6 +18,9 @@ public sealed record AppSettings
     public ComicSettings Comic { get; init; } = new();
 
     public VoiceSettings Voice { get; init; } = new();
+
+    /// <summary>Idioma con el que se lee el texto de los cómics ("en-US"); "" = inglés si está instalado.</summary>
+    public string OcrLanguage { get; init; } = "";
 }
 
 /// <summary>Lectura en voz alta.</summary>

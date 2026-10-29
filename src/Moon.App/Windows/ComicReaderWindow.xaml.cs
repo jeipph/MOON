@@ -128,11 +128,13 @@ public partial class ComicReaderWindow : Window
                 : new Thickness(0);
             _resizeTimer.Start();
         }
-        else if (e.PropertyName == nameof(ComicReaderViewModel.IsMarking))
+        else if (e.PropertyName == nameof(ComicReaderViewModel.IsSelectingRegion))
         {
-            PagedScroller.Cursor = _viewModel.IsMarking ? Cursors.Cross : null;
-            if (_viewModel.IsMarking && _viewModel.Layout == PageLayout.Webtoon)
-                ShowError("Para marcar zonas, cambia la vista a «Una página» o «Doble».");
+            PagedScroller.Cursor = _viewModel.IsSelectingRegion ? Cursors.Cross : null;
+            if (_viewModel.IsSelectingRegion && _viewModel.Layout == PageLayout.Webtoon)
+                ShowError(_viewModel.IsReadingText
+                    ? "Para leer texto, cambia la vista a «Una página» o «Doble»."
+                    : "Para marcar zonas, cambia la vista a «Una página» o «Doble».");
         }
     }
 
@@ -343,8 +345,12 @@ public partial class ComicReaderWindow : Window
     {
         bool ctrl = Keyboard.Modifiers.HasFlag(ModifierKeys.Control);
         bool webtoon = _viewModel.Layout == PageLayout.Webtoon;
+        // Escribiendo en el texto leído (o en otro campo), las flechas y el espacio son para el texto.
+        if (e.OriginalSource is TextBox && e.Key is not (Key.F11 or Key.Escape))
+            return;
         switch (e.Key)
         {
+            case Key.Escape when _viewModel.Ocr.IsOpen: _viewModel.Ocr.CloseCommand.Execute(null); break;
             case Key.Left when !webtoon: _viewModel.GoLeft(); break;
             case Key.Right when !webtoon: _viewModel.GoRight(); break;
             case Key.Space or Key.PageDown: ScreenDown(); break;
@@ -417,14 +423,14 @@ public partial class ComicReaderWindow : Window
     {
         if (e.OriginalSource is DependencyObject source && source.FindAncestor<ScrollBar>() is not null)
             return; // clic en la barra de desplazamiento
-        if (_viewModel.IsMarking && PageViewAt(e) is { } view)
+        if (_viewModel.IsSelectingRegion && PageViewAt(e) is { } view)
         {
-            // "Marcar zona": se empieza a dibujar un rectángulo sobre esta página.
+            // "Marcar zona" o "Leer texto": se empieza a dibujar un rectángulo sobre esta página.
             _regionView = view;
             _regionStart = e.GetPosition(view);
             _regionPreview = new Rectangle
             {
-                Stroke = (Brush)FindResource("Brush.Highlight.Yellow"),
+                Stroke = (Brush)FindResource(_viewModel.IsReadingText ? "Brush.Highlight.Blue" : "Brush.Highlight.Yellow"),
                 StrokeThickness = 2,
                 StrokeDashArray = [4, 2],
             };
@@ -503,6 +509,11 @@ public partial class ComicReaderWindow : Window
             end.X / view.ActualWidth, end.Y / view.ActualHeight);
         if (rect is null || view.Tag is not int page)
             return; // fue un clic, no un rectángulo
+        if (_viewModel.IsReadingText)
+        {
+            _ = _viewModel.Ocr.ReadAsync(page, rect.Value);
+            return;
+        }
         var dialog = new NoteDialog(this, $"Zona marcada · página {page + 1}", "", HighlightColor.Yellow);
         dialog.DeleteButton.Visibility = Visibility.Collapsed; // aún no existe: no hay nada que eliminar
         if (dialog.Ask() == NoteDialogResult.Save)
@@ -620,6 +631,16 @@ public partial class ComicReaderWindow : Window
         if (_viewModel.Layout == PageLayout.Webtoon)
             ScrollWebtoonTo(page);
     }
+
+    // ---- Leer texto ----
+
+    // Clic, doble clic o selección en el texto leído: se busca en el diccionario.
+    private void OnOcrSelectionChanged(object sender, RoutedEventArgs e) =>
+        _ = _viewModel.Ocr.LookUpAsync(OcrTextBox.SelectedText, OcrTextBox.SelectionStart);
+
+    // Instalar el OCR en inglés pide permisos de administrador: se copia el comando para que lo ejecute la persona.
+    private void OnCopyOcrCommandClick(object sender, RoutedEventArgs e) =>
+        Clipboard.SetText($"Add-WindowsCapability -Online -Name \"{OcrPanelViewModel.EnglishCapability}\"");
 
     // ---- Ventana ----
 

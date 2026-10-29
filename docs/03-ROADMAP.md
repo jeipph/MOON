@@ -10,7 +10,7 @@ Marca `[x]` cuando esté terminado **y verificado por la persona usuaria**. Un h
 
 ## L0 — Prototipos (spikes) (≈4–5 h en total)
 Experimentos pequeños y desechables, en `spikes/`. Documentar el resultado aquí.
-- [ ] **S1 — OCR de Windows desde WPF sin empaquetar.** Leer una imagen con texto en inglés y otra en japonés. ¿Funciona? ¿Qué idiomas hay instalados? ¿Hace falta MSIX? *Resultado:* ____
+- [x] **S1 — OCR de Windows desde WPF sin empaquetar.** *Resultado (2026-10-29, `spikes/S1-ocr`):* **funciona sin MSIX** (`Windows.Media.Ocr`, 6–30 ms por bocadillo). En este PC solo están instalados **es-ES y es-MX**; con ellos un texto en inglés sale casi bien ("CAN'T" → "CANIT", que MOON corrige). Página entera: lee mal (el dibujo confunde). Recorte de un bocadillo de *The Walking Dead* (castellano) agrandado **×2**: "¡Oof!", "¿Qué coño ha sido todo eso?", "Joder." perfectos; ×3–×4 empeora ("Jover"). No se necesita RapidOcrNet. Japonés: descartado (la persona lee en inglés/español).
 - [x] **S2 — EPUB en WebView2.** *Resultado (2026-10-27):* funciona con **foliate-js** (MIT) en WebView2 con hosts virtuales `app.moon` y `book.moon`; posición por CFI, índice, páginas y desplazamiento. Falta probar selección de texto y resaltado (L6).
 - [ ] **S3 — Webtoon.** Cargar 200 imágenes grandes en un `ScrollViewer` virtualizado; medir RAM. *Resultado:* ____
 - [ ] **S5 — Voces.** Leer el mismo párrafo (inglés y español) con: voces de Windows (`Windows.Media.SpeechSynthesis`), **Piper** y **Kokoro** (KokoroSharp). Medir: segundos hasta que empieza a hablar, velocidad frente a tiempo real, RAM, tamaño de descarga, y si se pueden saber los límites de cada palabra para resaltarla. Escuchar y elegir. *Resultado (2026-10-27, CPU, `spikes/S5-voces`):* **Piper** genera ~13 s de audio en 0,7–2 s (con carga del modelo), 60–110 MB por voz. **Kokoro** (KokoroSharp 0.8.4): carga 33 s la primera vez (incluye descarga de ~320 MB), luego 2–4 s por ~12 s de audio, **~1,4 GB de RAM**. Voz de Windows: Helena (es-ES), Sabina (es-MX), Zira (en-US). Licencias de voces Piper: claude-high Apache-2.0, ald Unlicense, davefx CC0, sharvard CC-BY 3.0, lessac (inglés) licencia de investigación de Blizzard 2013 → evitarla. **A la persona no le gustó ninguna.** **Chatterbox Multilingual** (MIT, Python + PyTorch 2.8 cu128 con `uv`; chatterbox-tts 0.1.7 pide torch 2.6, que no soporta RTX 50, se forzó 2.8; falta `setuptools<81` por `pkg_resources`): RTX 5070, carga 10 s, ~10 s de audio en 5–13 s (≈ tiempo real), 3,9 GB de VRAM, clona una voz con ~14 s de referencia. Algunas muestras salen más cortas que el texto (posible salto de frases): vigilar. Elección: **Chatterbox con voz clonada** de un audio que elige la persona (la voz de referencia no se distribuye con MOON). La persona aprobó la voz clonada de "VOZ PARA LIBROS" (2026-10-27) y quiere poder añadir más voces en el futuro.
@@ -84,10 +84,12 @@ Decisión (2026-10-27): **dos formas de meter libros**: "Añadir libros…" **co
 - *Verificado por Claude (2026-10-27): 72 pruebas; prueba corta: doble clic en "denial" → "nombre: denegación (f)", guardada y visible en Vocabulario. En cómics llegará con el OCR (L8). Falta que lo vea la persona.*
 
 ## L8 — OCR por zona (≈4 h) *(según resultado de S1)*
-- [ ] `RegionSelectorOverlay` y recorte del bitmap original.
-- [ ] `IOcrEngine` con la opción que salió mejor en S1 (Windows OCR; si falla sin MSIX, **RapidOcrNet** con modelos PaddleOCR en ONNX: ver `04-RESEARCH.md` §8.3).
-- [ ] Panel con texto editable → buscar palabra / traducir.
-- [ ] Selección de idioma de OCR y aviso si falta el paquete.
+- [~] Botón **«Leer texto»** en el lector de cómics (excluye «Marcar zona»): arrastrar un recuadro → se recorta de la página **a resolución completa** (PDF dibujado a 3000 px), con 4 % de margen y agrandado hasta ×2 (`PageImages.CropAsync`, `OcrText.ToPixels/Scale`).
+- [~] `IOcrEngine` (Core) + `WindowsOcrEngine` (Moon.Windows): un motor por idioma, reutilizado.
+- [~] `OcrText.Clean`: une las líneas del bocadillo (y las palabras cortadas con guion), repara apóstrofos ("CANIT" → "CAN'T") y "¡" leídas como i, y pasa las MAYÚSCULAS de cómic a frase normal. 23 pruebas.
+- [~] Panel abajo a la izquierda (`OcrPanelViewModel`): texto editable; clic, doble clic o selección = diccionario inglés → español y «Guardar palabra» (con la frase y la página); «Copiar»; «Guardar como zona» (zona azul con el texto de nota); Esc cierra.
+- [~] Idioma del OCR en el panel (se recuerda en `settings.json` → `OcrLanguage`; por defecto inglés si está). Aviso si falta el inglés, con los pasos y un enlace que copia el comando `Add-WindowsCapability` (pide administrador: lo ejecuta la persona).
+- *Hecho por Claude (2026-10-29): compila sin avisos, 103 pruebas; motor probado con bocadillos reales desde `spikes/S1-ocr`. **Falta probarlo con clics en la ventana** (no se movió el ratón) y que lo vea la persona.*
 
 ## L9 — "¿Qué es esto?" (≈3 h)
 - [ ] Recorte → portapapeles → abrir servicio de búsqueda inversa (según S4).
@@ -133,6 +135,7 @@ Con **ONNX Runtime** (`Microsoft.ML.OnnxRuntime` + DirectML para usar la tarjeta
 - [x] **Mejoras elegidas** (2026-10-27): ajustes de imagen (L2), Open Library (L3), mejorar nitidez y búsqueda por significado (L14). Descartada: traducción encima del globo.
 
 ## Registro de sesiones
+- **2026-10-29 — L8 (OCR por zona).** S1 resuelto: OCR de Windows sin MSIX. «Leer texto» en cómics con diccionario y vocabulario. Falta: prueba con clics (preguntar antes) y que la persona instale el OCR en inglés si lee cómics en inglés.
 - **2026-10-27 (tarde) — Desarrollo.** Hechos L1, L3, L5, L2+L4 (y PDF como imágenes), L6, L7; L5b programado sin verificar. Voz elegida: Chatterbox con la voz clonada ("Voz para libros 1/2/3" en `%APPDATA%\MOON\voces`). Pruebas con el CBR y el PDF de la persona y un cómic de 200 páginas (memoria estable ~300 MB). **Mañana:** ver "Qué hacer mañana" en `README.md` (primero verificar la voz cuando la persona no use el PC). Preferencias: pruebas cortas; no mover ratón/teclado si la persona está usando el PC.
 - **2026-10-27 — Investigación del ecosistema** (`04-RESEARCH.md` §8): Readest, NeeView (C#/WPF, MIT: referencia para L2), Seanime, Mihon, Komga/Kavita, OCR en ONNX, IA sin spoilers. Decisiones: EN→ES, sin anime, sin cuentas, IA más adelante (L13).
 - **2026-10-26 — Planificación.** Programa 2 redefinido como lector (antes: archivos + notas). Investigación en `04-RESEARCH.md`. Sin código.

@@ -13,6 +13,7 @@ Lector de escritorio para **Windows 10/11** hecho en **C# / .NET 10 / WPF**: bib
 | L6 | Subrayado, notas, marcadores, zonas en cómics, exportar | ✅ |
 | L7 | Diccionario inglés → español sin internet + vocabulario (Anki) | ✅ |
 | L5b | Lectura en voz alta (Chatterbox o voz de Windows) | ⚠️ **código hecho, falta oírla funcionar** |
+| L8 | «Leer texto» en cómics: OCR de un bocadillo → diccionario y vocabulario | ⚠️ **motor probado con bocadillos reales, falta probar la ventana con clics** |
 
 Todo lo marcado ✅ lo probó Claude con clics reales en una copia de prueba; **falta que lo vea la persona**.
 
@@ -25,8 +26,9 @@ Todo lo marcado ✅ lo probó Claude con clics reales en una copia de prueba; **
    - La persona debe elegir cuál de "Voz para libros 1/2/3" le gusta más.
 2. **Que la persona pruebe MOON con sus libros de verdad** (su biblioteca real está vacía; las pruebas se hicieron con `--datos`):
    enlazar su disco/carpeta, abrir su CBR (*The Walking Dead*) y su manga PDF (*Saga Sword&Shield*), subrayar, diccionario, vocabulario.
-3. **Siguiente hito según el ROADMAP:** L8 (OCR por zona en cómics → diccionario en los bocadillos), luego L9…L14. Ver `docs/03-ROADMAP.md`.
-4. Pendientes menores: Open Library (L3), "Continuar leyendo" ya funciona; instalador de MOON (L12).
+3. **Probar «Leer texto» (L8)** con clics (preguntar antes): abrir *The Walking Dead*, pulsar «Leer texto», recuadrar un bocadillo, clic en una palabra, «Guardar palabra», «Guardar como zona». Si la persona lee cómics en inglés: instalar el OCR en inglés (el panel copia el comando).
+4. **Siguiente hito según el ROADMAP:** L9 («¿Qué es esto?»), luego L10…L14. Ver `docs/03-ROADMAP.md`.
+5. Pendientes menores: Open Library (L3), "Continuar leyendo" ya funciona; instalador de MOON (L12).
 
 ## Para retomar con un modelo de IA
 

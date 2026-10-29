@@ -72,6 +72,7 @@ public partial class App : Application
             dataFolder is null ? WebViewHost.DefaultUserDataFolder : Path.Combine(dataFolder, "WebView2")));
         services.AddSingleton<DictionaryService>();
         services.AddSingleton<VoiceService>();
+        services.AddSingleton<Moon.Core.Ocr.IOcrEngine, Moon.Windows.Ocr.WindowsOcrEngine>();
         services.AddSingleton<ReaderLauncher>();
         services.AddSingleton(_ => new LibraryService(
             new SqliteLibraryStore(dataFolder is null ? SqliteLibraryStore.DefaultPath : Path.Combine(dataFolder, "moon.db")),

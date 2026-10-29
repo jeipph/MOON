@@ -4,6 +4,7 @@ using Moon.App.ViewModels;
 using Moon.App.Windows;
 using Moon.Core.Comics;
 using Moon.Core.Library;
+using Moon.Core.Ocr;
 using Moon.Windows.Comics;
 
 namespace Moon.App.Services;
@@ -20,11 +21,13 @@ public sealed class ReaderLauncher
     private readonly WebViewHost _webViewHost;
     private readonly DictionaryService _dictionary;
     private readonly VoiceService _voice;
+    private readonly IOcrEngine _ocr;
     private readonly Dictionary<long, Window> _open = [];
 
     public ReaderLauncher(LibraryService library, SettingsService settings, ThemeService themes, WebViewHost webViewHost,
-        DictionaryService dictionary, VoiceService voice)
+        DictionaryService dictionary, VoiceService voice, IOcrEngine ocr)
     {
+        _ocr = ocr;
         _library = library;
         _settings = settings;
         _themes = themes;
@@ -75,7 +78,7 @@ public sealed class ReaderLauncher
                 existing.Activate();
                 return null;
             }
-            var viewModel = new ComicReaderViewModel(book, new PageImages(source), _library, _settings, isManga);
+            var viewModel = new ComicReaderViewModel(book, new PageImages(source), _library, _settings, isManga, _ocr, _dictionary);
             window = new ComicReaderWindow(viewModel, _themes);
         }
         else
