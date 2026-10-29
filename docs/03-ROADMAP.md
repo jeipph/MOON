@@ -106,7 +106,7 @@ Decisión (2026-10-27): **dos formas de meter libros**: "Añadir libros…" **co
 - Descartado por la persona (2026-10-29): el diccionario inglés → español palabra por palabra es suficiente.
 
 ## L12 — Pulido, ajustes y empaquetado (≈4 h)
-- [ ] Ajustes completos, atajos, accesibilidad (contraste, lector de pantalla básico).
+- [x] Atajos y teclado en la biblioteca: **Ctrl+F** busca, **Esc** borra la búsqueda, **F5** revisa las carpetas; desde la búsqueda **Enter** o **↓** van a la primera tarjeta; en una tarjeta las **flechas** pasan a la de al lado, **Enter** abre y **Mayús+F10** saca el menú. La tarjeta con el foco lleva un borde. *(Compila y pasan las pruebas, pero el teclado simulado no llega a la app en las pruebas: falta que la persona lo compruebe.)*
 - [x] Rendimiento con bibliotecas de 1000+ archivos. *(2026-10-29, 1000 cómics de prueba: escanear y crear portadas 4,6 s en segundo plano. La cuadrícula era un `WrapPanel` sin virtualizar: creaba las 1000 tarjetas y portadas → **818 MB** al abrir. Ahora son filas virtualizadas (`BookRow`, se rearman según el ancho), cada tarjeta suelta su portada al salir de pantalla (`ReleaseCover`, sin la caché de imágenes de WPF) y las portadas se decodifican al tamaño en pantalla (150 px al 100 %, antes 300): **125 MB** al abrir y ~280 MB estables tras recorrer toda la biblioteca dos veces. La rueda del ratón la gestiona la cuadrícula (120 px por clic); **no se pudo probar con la rueda simulada** (no llega a la app en las pruebas): falta que la persona lo compruebe.)*
 - [ ] Instalador (Inno Setup), `THIRD-PARTY-NOTICES.md`, README de usuario.
 

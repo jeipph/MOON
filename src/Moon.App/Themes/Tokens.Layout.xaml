@@ -33,6 +33,8 @@
     <!-- Cuadrícula de libros -->
     <Thickness x:Key="Padding.Library">24,16,8,24</Thickness>
     <sys:Double x:Key="Size.Card.Width">150</sys:Double>
+    <!-- Borde de la tarjeta con el foco del teclado -->
+    <Thickness x:Key="Size.CardFocus">2</Thickness>
     <!-- Cuánto baja la biblioteca por cada "clic" de la rueda del ratón -->
     <sys:Double x:Key="Library.WheelPixels">120</sys:Double>
     <sys:Double x:Key="Size.Cover.Height">220</sys:Double>

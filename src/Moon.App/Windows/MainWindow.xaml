@@ -19,6 +19,7 @@
         FontFamily="{DynamicResource Font.Main}"
         FontSize="{DynamicResource FontSize.Body}"
         AllowDrop="True"
+        PreviewKeyDown="OnPreviewKeyDown"
         Drop="OnDrop">
     <Window.Resources>
         <BooleanToVisibilityConverter x:Key="Visible" />
@@ -28,6 +29,12 @@
                             Margin="{DynamicResource Margin.Card}"
                             Background="Transparent"
                             Cursor="Hand"
+                            Focusable="True"
+                            FocusVisualStyle="{x:Null}"
+                            BorderThickness="{DynamicResource Size.CardFocus}"
+                            BorderBrush="Transparent"
+                            CornerRadius="{DynamicResource Radius.Cover}"
+                            KeyDown="OnBookKeyDown"
                             AutomationProperties.Name="{Binding Title}"
                             ToolTip="{Binding Title}"
                             Loaded="OnBookLoaded"
@@ -85,6 +92,10 @@
                         </StackPanel>
                     </Border>
                     <DataTemplate.Triggers>
+                        <!-- Tarjeta con el foco del teclado: borde claro (la línea punteada de Windows no se ve en negro) -->
+                        <Trigger SourceName="Card" Property="IsKeyboardFocused" Value="True">
+                            <Setter TargetName="Card" Property="BorderBrush" Value="{DynamicResource Brush.Text}" />
+                        </Trigger>
                         <DataTrigger Binding="{Binding IsAvailable}" Value="False">
                             <Setter TargetName="Card" Property="Opacity" Value="{DynamicResource Opacity.Unavailable}" />
                             <Setter TargetName="Card" Property="ToolTip" Value="Disco desconectado" />
@@ -124,8 +135,11 @@
                     </StackPanel>
                 </Button>
 
-                <TextBox DockPanel.Dock="Right"
+                <TextBox x:Name="SearchBox"
+                         DockPanel.Dock="Right"
                          Width="{DynamicResource Size.SearchBox}"
+                         ToolTip="Buscar (Ctrl+F) · Esc borra · Enter o ↓ van a los libros"
+                         PreviewKeyDown="OnSearchKeyDown"
                          VerticalAlignment="Center"
                          AutomationProperties.Name="Buscar"
                          Style="{StaticResource SearchBox}"

@@ -113,6 +113,79 @@ public partial class MainWindow : Window
             TitleBar.SetDark(hwnd, !_themes.IsLight);
     }
 
+    // ---- Teclado ----
+
+    // Ctrl+F busca, Esc borra la búsqueda, F5 vuelve a revisar las carpetas.
+    private void OnPreviewKeyDown(object sender, KeyEventArgs e)
+    {
+        bool ctrl = Keyboard.Modifiers.HasFlag(ModifierKeys.Control);
+        switch (e.Key)
+        {
+            case Key.F when ctrl:
+                SearchBox.Focus();
+                SearchBox.SelectAll();
+                break;
+            case Key.Escape when SearchBox.IsKeyboardFocusWithin && SearchBox.Text.Length > 0:
+                _viewModel.Library.SearchText = "";
+                break;
+            case Key.F5:
+                _viewModel.Library.RequestSync();
+                break;
+            default:
+                return;
+        }
+        e.Handled = true;
+    }
+
+    // Desde la búsqueda, Enter o ↓ llevan a la primera tarjeta.
+    private void OnSearchKeyDown(object sender, KeyEventArgs e)
+    {
+        if (e.Key is Key.Enter or Key.Down && FirstCard() is { } card)
+        {
+            card.Focus();
+            e.Handled = true;
+        }
+    }
+
+    private FrameworkElement? FirstCard() => FindCard(BookGrid);
+
+    private static FrameworkElement? FindCard(DependencyObject parent)
+    {
+        for (int i = 0; i < System.Windows.Media.VisualTreeHelper.GetChildrenCount(parent); i++)
+        {
+            DependencyObject child = System.Windows.Media.VisualTreeHelper.GetChild(parent, i);
+            if (child is FrameworkElement { Name: "Card" } card)
+                return card;
+            if (FindCard(child) is { } found)
+                return found;
+        }
+        return null;
+    }
+
+    // En una tarjeta: Enter abre el libro y las flechas pasan a la de al lado.
+    // El menú del libro sale con Mayús+F10 o la tecla de menú.
+    private void OnBookKeyDown(object sender, KeyEventArgs e)
+    {
+        FocusNavigationDirection? direction = e.Key switch
+        {
+            Key.Left => FocusNavigationDirection.Left,
+            Key.Right => FocusNavigationDirection.Right,
+            Key.Up => FocusNavigationDirection.Up,
+            Key.Down => FocusNavigationDirection.Down,
+            _ => null,
+        };
+        if (e.Key == Key.Enter)
+            _viewModel.Library.OpenBookCommand.Execute(BookOf(sender));
+        else if (direction is { } d && sender is FrameworkElement card)
+        {
+            card.MoveFocus(new TraversalRequest(d));
+            (Keyboard.FocusedElement as FrameworkElement)?.BringIntoView();
+        }
+        else
+            return;
+        e.Handled = true;
+    }
+
     private void OnVocabularyClick(object sender, RoutedEventArgs e) =>
         new VocabularyWindow(this, _viewModel.Library.Service).ShowDialog();
 
@@ -136,6 +209,7 @@ public partial class MainWindow : Window
 
     private void OnBookMouseDown(object sender, MouseButtonEventArgs e)
     {
+        (sender as UIElement)?.Focus(); // desde aquí se sigue con las flechas y Enter
         if (e.ClickCount == 2)
             _viewModel.Library.OpenBookCommand.Execute(BookOf(sender));
     }
