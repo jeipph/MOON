@@ -166,16 +166,6 @@ public sealed class LibraryService
 
     public void DeleteVocabulary(long id) => _store.DeleteVocabulary(id);
 
-    // ---- Cosas por investigar (los PNG los guarda y borra la app; aquí solo sus datos) ----
-
-    public IReadOnlyList<Research.ResearchItem> Research => _store.GetResearch();
-
-    public Research.ResearchItem AddResearch(Research.ResearchItem item) => _store.AddResearch(item);
-
-    public void UpdateResearchNote(long id, string note) => _store.UpdateResearchNote(id, note);
-
-    public void DeleteResearch(long id) => _store.DeleteResearch(id);
-
     // ---- Subrayados, marcadores y zonas ----
 
     public IReadOnlyList<Annotations.Annotation> GetAnnotations(long bookId) => _store.GetAnnotations(bookId);

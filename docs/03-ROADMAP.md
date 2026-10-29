@@ -14,7 +14,7 @@ Experimentos pequeños y desechables, en `spikes/`. Documentar el resultado aqu�
 - [x] **S2 — EPUB en WebView2.** *Resultado (2026-10-27):* funciona con **foliate-js** (MIT) en WebView2 con hosts virtuales `app.moon` y `book.moon`; posición por CFI, índice, páginas y desplazamiento. Falta probar selección de texto y resaltado (L6).
 - [ ] **S3 — Webtoon.** Cargar 200 imágenes grandes en un `ScrollViewer` virtualizado; medir RAM. *Resultado:* ____
 - [ ] **S5 — Voces.** Leer el mismo párrafo (inglés y español) con: voces de Windows (`Windows.Media.SpeechSynthesis`), **Piper** y **Kokoro** (KokoroSharp). Medir: segundos hasta que empieza a hablar, velocidad frente a tiempo real, RAM, tamaño de descarga, y si se pueden saber los límites de cada palabra para resaltarla. Escuchar y elegir. *Resultado (2026-10-27, CPU, `spikes/S5-voces`):* **Piper** genera ~13 s de audio en 0,7–2 s (con carga del modelo), 60–110 MB por voz. **Kokoro** (KokoroSharp 0.8.4): carga 33 s la primera vez (incluye descarga de ~320 MB), luego 2–4 s por ~12 s de audio, **~1,4 GB de RAM**. Voz de Windows: Helena (es-ES), Sabina (es-MX), Zira (en-US). Licencias de voces Piper: claude-high Apache-2.0, ald Unlicense, davefx CC0, sharvard CC-BY 3.0, lessac (inglés) licencia de investigación de Blizzard 2013 → evitarla. **A la persona no le gustó ninguna.** **Chatterbox Multilingual** (MIT, Python + PyTorch 2.8 cu128 con `uv`; chatterbox-tts 0.1.7 pide torch 2.6, que no soporta RTX 50, se forzó 2.8; falta `setuptools<81` por `pkg_resources`): RTX 5070, carga 10 s, ~10 s de audio en 5–13 s (≈ tiempo real), 3,9 GB de VRAM, clona una voz con ~14 s de referencia. Algunas muestras salen más cortas que el texto (posible salto de frases): vigilar. Elección: **Chatterbox con voz clonada** de un audio que elige la persona (la voz de referencia no se distribuye con MOON). La persona aprobó la voz clonada de "VOZ PARA LIBROS" (2026-10-27) y quiere poder añadir más voces en el futuro.
-- [ ] **S4 — Búsqueda inversa.** Copiar un recorte al portapapeles y abrir Google Lens/TinEye/SauceNAO. ¿Cuál es el flujo menos incómodo? *Resultado:* ____
+- ~~**S4 — Búsqueda inversa.**~~ Ya no hace falta: L9 se descartó (2026-10-29).
 
 ## L1 — Esqueleto (≈1 h)
 - [x] Solución `Moon.sln` con Core, Windows, App y Tests (como el Programa 1, TFM `net10.0-windows10.0.19041.0`).
@@ -92,19 +92,16 @@ Decisión (2026-10-27): **dos formas de meter libros**: "Añadir libros…" **co
 - [x] Idioma del OCR en el panel (se recuerda en `settings.json` → `OcrLanguage`; por defecto inglés si está). Aviso si falta el inglés, con los pasos y un enlace que copia el comando `Add-WindowsCapability` (pide administrador: lo ejecuta la persona).
 - *Verificado por Claude (2026-10-29) con clics reales en una copia de prueba (*The Walking Dead*, castellano): "¿Qué coño ha sido todo eso?" (pág. 10) y "Dios..." (pág. 11); recuadro vacío → "No se encontró texto"; «Leer texto» apaga «Marcar zona»; doble clic en "give" → "verbo: dar"; «✓ Guardada»; zona azul con su texto en Notas; Esc cierra; idioma recordado. 105 pruebas. Nota de la prueba: una ventana invisible de la app de Claude tapaba la parte derecha de la barra y algunos clics no llegaban a los botones (se pulsaron por accesibilidad); no es un fallo de MOON. Falta que lo vea la persona.*
 
-## L9 — "¿Qué es esto?" (≈3 h)
-- *En curso (2026-10-29): hecho en Core la tabla `research` (base de datos versión 6), `ResearchItem`, `ImageSearchSites` (Google Lens, Bing, SauceNAO, TinEye: la persona pega el recorte con Ctrl+V; MOON no sube nada) y los métodos de `LibraryService`. Falta: pruebas del almacén, modo «¿Qué es esto?» en el lector de cómics (recorte a resolución completa → ventana con nota y botones de búsqueda → portapapeles + navegador), ventana «Cosas por investigar» en la biblioteca y aviso de privacidad.*
-- [ ] Recorte → portapapeles → abrir servicio de búsqueda inversa (según S4).
-- [ ] Aviso de privacidad antes de subir/abrir.
-- [ ] Lista "Cosas por investigar" con recortes y notas.
+## ~~L9 — "¿Qué es esto?"~~
+- Descartado por la persona (2026-10-29). Se quitó el código que se había empezado (la tabla `research` nunca llegó a usarse; si una base de datos de prueba quedó en la versión 6, no pasa nada: esa tabla se ignora).
 
 ## L10 — PDF (≈4 h)
 - [x] (Adelantado en L2) PDF como páginas de imagen en el lector de cómics, con `Windows.Data.Pdf`. Portada en la biblioteca.
 - [ ] Visor PDF con texto seleccionable (PDF.js en WebView2 o alternativa decidida).
 - [ ] Resaltado de texto y notas con coordenadas.
 
-## L11 — Traducción (≈2 h)
-- [ ] `ITranslator` con una implementación (según decisión); desactivada por defecto.
+## ~~L11 — Traducción~~
+- Descartado por la persona (2026-10-29): el diccionario inglés → español palabra por palabra es suficiente.
 
 ## L12 — Pulido, ajustes y empaquetado (≈4 h)
 - [ ] Ajustes completos, atajos, accesibilidad (contraste, lector de pantalla básico).
