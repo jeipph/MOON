@@ -33,9 +33,9 @@
     <!-- Cuadrícula de libros -->
     <Thickness x:Key="Padding.Library">24,16,8,24</Thickness>
     <sys:Double x:Key="Size.Card.Width">150</sys:Double>
+    <!-- Cuánto baja la biblioteca por cada "clic" de la rueda del ratón -->
+    <sys:Double x:Key="Library.WheelPixels">120</sys:Double>
     <sys:Double x:Key="Size.Cover.Height">220</sys:Double>
-    <!-- Ancho al que se decodifican las portadas (×2 para pantallas con escalado). -->
-    <sys:Int32 x:Key="Cover.DecodeWidth">300</sys:Int32>
     <Thickness x:Key="Margin.Card">0,0,16,20</Thickness>
     <CornerRadius x:Key="Radius.Cover">6</CornerRadius>
     <Thickness x:Key="Padding.CoverText">10</Thickness>

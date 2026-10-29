@@ -21,7 +21,7 @@ public sealed partial class LibraryViewModel : ObservableObject, IDisposable
     private readonly LibraryDialogs _dialogs;
     private readonly ReaderLauncher _reader;
     private readonly SemaphoreSlim _busy = new(1, 1);
-    private readonly int _coverDecodeWidth;
+    private int _coverDecodeWidth;
     private List<BookItemViewModel> _allBooks = [];
     private bool _syncPending;
 
@@ -31,7 +31,7 @@ public sealed partial class LibraryViewModel : ObservableObject, IDisposable
         _watcher = watcher;
         _dialogs = dialogs;
         _reader = reader;
-        _coverDecodeWidth = Application.Current.TryFindResource("Cover.DecodeWidth") as int? ?? 300;
+        _coverDecodeWidth = 0; // se calcula al llenar la biblioteca (hace falta la ventana para saber el escalado)
         _watcher.Changed += (_, _) => Application.Current.Dispatcher.BeginInvoke(RequestSync);
         // Al cerrar un libro, su progreso y "Continuar leyendo" se ponen al día.
         _reader.ReaderClosed += (_, _) => Populate();
@@ -269,7 +269,7 @@ public sealed partial class LibraryViewModel : ObservableObject, IDisposable
         IReadOnlyList<LibrarySource> sources = _library.Sources;
 
         _allBooks = books
-            .Select(b => new BookItemViewModel(b, paths.GetValueOrDefault(b.SourceId) is not null, _library.CoverPath(b.Id), _coverDecodeWidth))
+            .Select(b => new BookItemViewModel(b, paths.GetValueOrDefault(b.SourceId) is not null, _library.CoverPath(b.Id), CoverDecodeWidth()))
             .ToList();
 
         // Se recuerda qué fila estaba elegida para no perderla al repintar.
@@ -315,6 +315,18 @@ public sealed partial class LibraryViewModel : ObservableObject, IDisposable
         foreach (BookItemViewModel book in visible)
             Books.Add(book);
         HasVisibleBooks = Books.Count > 0;
+    }
+
+    // Ancho en píxeles reales de una portada: el de la tarjeta por el escalado de la pantalla
+    // (150 px al 100 %). Decodificarlas más grandes gastaba memoria de Windows que luego no devolvía.
+    private int CoverDecodeWidth()
+    {
+        if (_coverDecodeWidth > 0)
+            return _coverDecodeWidth;
+        double card = Application.Current.TryFindResource("Size.Card.Width") as double? ?? 150;
+        if (Application.Current.MainWindow is not { IsLoaded: true } window)
+            return (int)card;
+        return _coverDecodeWidth = (int)Math.Ceiling(card * System.Windows.Media.VisualTreeHelper.GetDpi(window).DpiScaleX);
     }
 
     public void Dispose()

@@ -4,6 +4,7 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:vm="clr-namespace:Moon.App.ViewModels"
+        xmlns:local="clr-namespace:Moon.App.Windows"
         mc:Ignorable="d"
         d:DataContext="{d:DesignInstance vm:MainViewModel}"
         Title="MOON"
@@ -21,6 +22,75 @@
         Drop="OnDrop">
     <Window.Resources>
         <BooleanToVisibilityConverter x:Key="Visible" />
+            <DataTemplate x:Key="BookCard" DataType="{x:Type vm:BookItemViewModel}">
+                    <Border x:Name="Card"
+                            Width="{DynamicResource Size.Card.Width}"
+                            Margin="{DynamicResource Margin.Card}"
+                            Background="Transparent"
+                            Cursor="Hand"
+                            AutomationProperties.Name="{Binding Title}"
+                            ToolTip="{Binding Title}"
+                            Loaded="OnBookLoaded"
+                        Unloaded="OnBookUnloaded"
+                            MouseLeftButtonDown="OnBookMouseDown">
+                        <Border.ContextMenu>
+                            <ContextMenu>
+                                <MenuItem Header="Abrir" Click="OnOpenBookClick" />
+                                <MenuItem Header="{Binding PdfModeMenuHeader}" Click="OnOpenPdfInOtherModeClick"
+                                          Visibility="{Binding IsPdf, Converter={StaticResource Visible}}" />
+                                <MenuItem Header="Mostrar en el Explorador" Click="OnShowInExplorerClick" />
+                                <Separator />
+                                <MenuItem Header="Quitar de la biblioteca…" Click="OnRemoveBookClick" />
+                            </ContextMenu>
+                        </Border.ContextMenu>
+                        <StackPanel>
+                            <!-- Portada, o una dibujada con el título si no tiene -->
+                            <Border Height="{DynamicResource Size.Cover.Height}"
+                                    CornerRadius="{DynamicResource Radius.Cover}"
+                                    Background="{DynamicResource Brush.Surface}"
+                                    BorderBrush="{DynamicResource Brush.Border}"
+                                    BorderThickness="1"
+                                    ClipToBounds="True">
+                                <Grid>
+                                    <Image Source="{Binding Cover}" Stretch="UniformToFill" />
+                                    <Grid Margin="{DynamicResource Padding.CoverText}"
+                                          Visibility="{Binding HasNoCover, Converter={StaticResource Visible}}">
+                                        <TextBlock VerticalAlignment="Center"
+                                                   HorizontalAlignment="Center"
+                                                   TextAlignment="Center"
+                                                   TextWrapping="Wrap"
+                                                   FontSize="{DynamicResource FontSize.CoverTitle}"
+                                                   Text="{Binding Title}" />
+                                        <TextBlock VerticalAlignment="Bottom"
+                                                   HorizontalAlignment="Center"
+                                                   FontSize="{DynamicResource FontSize.Micro}"
+                                                   Foreground="{DynamicResource Brush.TextMuted}"
+                                                   Text="{Binding FormatLabel}" />
+                                    </Grid>
+                                </Grid>
+                            </Border>
+                            <ProgressBar Margin="{DynamicResource Space.AboveSmall}"
+                                         Style="{StaticResource ThinProgress}"
+                                         Value="{Binding Progress, Mode=OneWay}"
+                                         Visibility="{Binding HasProgress, Converter={StaticResource Visible}}" />
+                            <TextBlock Margin="{DynamicResource Space.Above}"
+                                       Text="{Binding Title}"
+                                       TextTrimming="CharacterEllipsis" />
+                            <TextBlock FontSize="{DynamicResource FontSize.Small}"
+                                       Foreground="{DynamicResource Brush.TextMuted}"
+                                       TextTrimming="CharacterEllipsis">
+                                <Run Text="{Binding FormatLabel, Mode=OneWay}" />
+                                <Run Text="{Binding Author, Mode=OneWay, StringFormat='· {0}', TargetNullValue=''}" />
+                            </TextBlock>
+                        </StackPanel>
+                    </Border>
+                    <DataTemplate.Triggers>
+                        <DataTrigger Binding="{Binding IsAvailable}" Value="False">
+                            <Setter TargetName="Card" Property="Opacity" Value="{DynamicResource Opacity.Unavailable}" />
+                            <Setter TargetName="Card" Property="ToolTip" Value="Disco desconectado" />
+                        </DataTrigger>
+                    </DataTemplate.Triggers>
+                </DataTemplate>
     </Window.Resources>
 
     <Grid>
@@ -180,85 +250,44 @@
                            Text="{Binding Status}"
                            TextTrimming="CharacterEllipsis" />
 
-                <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
-                    <ItemsControl AutomationProperties.Name="Libros" ItemsSource="{Binding Books}">
-                        <ItemsControl.ItemsPanel>
-                            <ItemsPanelTemplate>
-                                <WrapPanel />
-                            </ItemsPanelTemplate>
-                        </ItemsControl.ItemsPanel>
-                        <ItemsControl.ItemTemplate>
-                            <DataTemplate DataType="{x:Type vm:BookItemViewModel}">
-                                <Border x:Name="Card"
-                                        Width="{DynamicResource Size.Card.Width}"
-                                        Margin="{DynamicResource Margin.Card}"
-                                        Background="Transparent"
-                                        Cursor="Hand"
-                                        AutomationProperties.Name="{Binding Title}"
-                                        ToolTip="{Binding Title}"
-                                        Loaded="OnBookLoaded"
-                                        MouseLeftButtonDown="OnBookMouseDown">
-                                    <Border.ContextMenu>
-                                        <ContextMenu>
-                                            <MenuItem Header="Abrir" Click="OnOpenBookClick" />
-                                            <MenuItem Header="{Binding PdfModeMenuHeader}" Click="OnOpenPdfInOtherModeClick"
-                                                      Visibility="{Binding IsPdf, Converter={StaticResource Visible}}" />
-                                            <MenuItem Header="Mostrar en el Explorador" Click="OnShowInExplorerClick" />
-                                            <Separator />
-                                            <MenuItem Header="Quitar de la biblioteca…" Click="OnRemoveBookClick" />
-                                        </ContextMenu>
-                                    </Border.ContextMenu>
-                                    <StackPanel>
-                                        <!-- Portada, o una dibujada con el título si no tiene -->
-                                        <Border Height="{DynamicResource Size.Cover.Height}"
-                                                CornerRadius="{DynamicResource Radius.Cover}"
-                                                Background="{DynamicResource Brush.Surface}"
-                                                BorderBrush="{DynamicResource Brush.Border}"
-                                                BorderThickness="1"
-                                                ClipToBounds="True">
-                                            <Grid>
-                                                <Image Source="{Binding Cover}" Stretch="UniformToFill" />
-                                                <Grid Margin="{DynamicResource Padding.CoverText}"
-                                                      Visibility="{Binding HasNoCover, Converter={StaticResource Visible}}">
-                                                    <TextBlock VerticalAlignment="Center"
-                                                               HorizontalAlignment="Center"
-                                                               TextAlignment="Center"
-                                                               TextWrapping="Wrap"
-                                                               FontSize="{DynamicResource FontSize.CoverTitle}"
-                                                               Text="{Binding Title}" />
-                                                    <TextBlock VerticalAlignment="Bottom"
-                                                               HorizontalAlignment="Center"
-                                                               FontSize="{DynamicResource FontSize.Micro}"
-                                                               Foreground="{DynamicResource Brush.TextMuted}"
-                                                               Text="{Binding FormatLabel}" />
-                                                </Grid>
-                                            </Grid>
-                                        </Border>
-                                        <ProgressBar Margin="{DynamicResource Space.AboveSmall}"
-                                                     Style="{StaticResource ThinProgress}"
-                                                     Value="{Binding Progress, Mode=OneWay}"
-                                                     Visibility="{Binding HasProgress, Converter={StaticResource Visible}}" />
-                                        <TextBlock Margin="{DynamicResource Space.Above}"
-                                                   Text="{Binding Title}"
-                                                   TextTrimming="CharacterEllipsis" />
-                                        <TextBlock FontSize="{DynamicResource FontSize.Small}"
-                                                   Foreground="{DynamicResource Brush.TextMuted}"
-                                                   TextTrimming="CharacterEllipsis">
-                                            <Run Text="{Binding FormatLabel, Mode=OneWay}" />
-                                            <Run Text="{Binding Author, Mode=OneWay, StringFormat='· {0}', TargetNullValue=''}" />
-                                        </TextBlock>
-                                    </StackPanel>
-                                </Border>
-                                <DataTemplate.Triggers>
-                                    <DataTrigger Binding="{Binding IsAvailable}" Value="False">
-                                        <Setter TargetName="Card" Property="Opacity" Value="{DynamicResource Opacity.Unavailable}" />
-                                        <Setter TargetName="Card" Property="ToolTip" Value="Disco desconectado" />
-                                    </DataTrigger>
-                                </DataTemplate.Triggers>
-                            </DataTemplate>
-                        </ItemsControl.ItemTemplate>
-                    </ItemsControl>
-                </ScrollViewer>
+                <!-- Libros en filas virtualizadas: solo existen las filas que se ven (con 1000 libros, una
+                     cuadrícula normal creaba todas las tarjetas y portadas: más de 800 MB). Las filas las
+                     arma MainWindow.xaml.cs según el ancho. -->
+                <ItemsControl x:Name="BookGrid"
+                              Grid.Row="1"
+                              AutomationProperties.Name="Libros"
+                              Focusable="False"
+                              VirtualizingPanel.IsVirtualizing="True"
+                              VirtualizingPanel.VirtualizationMode="Standard"
+                              VirtualizingPanel.ScrollUnit="Pixel"
+                              ScrollViewer.CanContentScroll="True"
+                              SizeChanged="OnBookGridSizeChanged"
+                              PreviewMouseWheel="OnBookGridWheel">
+                    <ItemsControl.Template>
+                        <ControlTemplate TargetType="ItemsControl">
+                            <ScrollViewer x:Name="Scroller" Focusable="False" CanContentScroll="True"
+                                          VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                                <ItemsPresenter />
+                            </ScrollViewer>
+                        </ControlTemplate>
+                    </ItemsControl.Template>
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <VirtualizingStackPanel />
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate DataType="{x:Type local:BookRow}">
+                            <ItemsControl ItemsSource="{Binding Books}" ItemTemplate="{StaticResource BookCard}" Focusable="False">
+                                <ItemsControl.ItemsPanel>
+                                    <ItemsPanelTemplate>
+                                        <StackPanel Orientation="Horizontal" />
+                                    </ItemsPanelTemplate>
+                                </ItemsControl.ItemsPanel>
+                            </ItemsControl>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
 
                 <!-- Biblioteca vacía -->
                 <StackPanel Grid.Row="1"
