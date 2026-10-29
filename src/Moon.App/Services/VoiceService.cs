@@ -2,8 +2,9 @@ using System.Diagnostics;
 using System.IO;
 using System.Net;
 using System.Net.Http;
-using System.Net.Http.Json;
 using System.Net.Sockets;
+using System.Text;
+using System.Text.Json;
 using System.Runtime.InteropServices.WindowsRuntime;
 using Windows.Media.SpeechSynthesis;
 
@@ -73,6 +74,8 @@ public sealed class VoiceService : IDisposable
         }
         catch (Exception exception) when (exception is HttpRequestException or IOException or TaskCanceledException or InvalidOperationException)
         {
+            if (!cancel.IsCancellationRequested) // parar la lectura no es un error
+                ErrorLog.Write($"Voz: la frase falló ({exception.GetType().Name}: {exception.Message})");
             return null;
         }
     }
@@ -80,10 +83,17 @@ public sealed class VoiceService : IDisposable
     private async Task<byte[]?> NaturalVoiceAsync(string text, string language, string reference, CancellationToken cancel)
     {
         Uri baseUri = await EnsureServerAsync(cancel);
-        using HttpResponseMessage response = await _http.PostAsJsonAsync(new Uri(baseUri, "speak"),
-            new { text, language, voice = reference, exaggeration = 0.5, cfg_weight = 0.5 }, cancel);
+        // Con StringContent se envía el tamaño (Content-Length). PostAsJsonAsync lo manda "por trozos"
+        // sin tamaño y el servidor de Python no sabe leerlo: fallaban todas las frases.
+        using var body = new StringContent(
+            JsonSerializer.Serialize(new { text, language, voice = reference, exaggeration = 0.5, cfg_weight = 0.5 }),
+            Encoding.UTF8, "application/json");
+        using HttpResponseMessage response = await _http.PostAsync(new Uri(baseUri, "speak"), body, cancel);
         if (!response.IsSuccessStatusCode)
+        {
+            ErrorLog.Write($"Voz: el motor respondió {(int)response.StatusCode}: {await response.Content.ReadAsStringAsync(cancel)}");
             return null;
+        }
         IsWarm = true;
         return await response.Content.ReadAsByteArrayAsync(cancel);
     }

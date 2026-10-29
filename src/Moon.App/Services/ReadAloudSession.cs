@@ -19,6 +19,8 @@ public sealed partial class ReadAloudSession : ObservableObject, IDisposable
 {
     // Frases preparadas por adelantado: con Chatterbox generar tarda más o menos lo que dura la frase.
     private const int Ahead = 3;
+    private const int MaxFailuresInARow = 3;
+    private int _failuresInARow;
 
     private sealed record Item(string? Mark, string Text)
     {
@@ -89,6 +91,7 @@ public sealed partial class ReadAloudSession : ObservableObject, IDisposable
     {
         Stop();
         _cancel = new CancellationTokenSource();
+        _failuresInARow = 0;
         IsActive = true;
         _bookEnded = false;
         _userPaused = false;
@@ -162,10 +165,18 @@ public sealed partial class ReadAloudSession : ObservableObject, IDisposable
             return;
         if (audio is null)
         {
+            // Una frase rara se salta; si fallan varias seguidas, la voz no funciona: se para en vez
+            // de recorrer el libro entero saltando frases (y perder dónde ibas).
+            if (++_failuresInARow >= MaxFailuresInARow)
+            {
+                Finish("La voz no funciona ahora mismo. Detalles en " + ErrorLog.FilePath);
+                return;
+            }
             Status = "No se pudo leer una frase; se salta.";
             PlayNext();
             return;
         }
+        _failuresInARow = 0;
         if (first.Value.Mark is { } mark && mark != _lastMark)
         {
             _lastMark = mark;

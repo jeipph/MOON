@@ -75,8 +75,14 @@ class Handler(BaseHTTPRequestHandler):
             self.send_response(503 if model is None else 404)
             self.end_headers()
             return
+        length = self.headers.get("Content-Length")
+        if length is None:  # este servidor no sabe leer peticiones "por trozos"
+            self.send_response(411)
+            self.end_headers()
+            self.wfile.write("Falta Content-Length en la petición".encode("utf-8"))
+            return
         try:
-            body = json.loads(self.rfile.read(int(self.headers["Content-Length"])))
+            body = json.loads(self.rfile.read(int(length)))
             audio = speak(body["text"], body.get("language", "es"), body.get("voice"),
                           float(body.get("exaggeration", 0.5)), float(body.get("cfg_weight", 0.5)))
             self.send_response(200)

@@ -103,17 +103,7 @@ public partial class App : Application
 
     private static void ReportError(Exception exception)
     {
-        try
-        {
-            string folder = Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "MOON", "logs");
-            Directory.CreateDirectory(folder);
-            File.AppendAllText(Path.Combine(folder, "error.log"), $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] {exception}\n\n");
-        }
-        catch (Exception)
-        {
-            // Si ni siquiera se puede escribir el registro, al menos se ve el mensaje.
-        }
+        ErrorLog.Write(exception.ToString());
         MessageBox.Show($"MOON encontró un error:\n\n{exception.Message}", "MOON", MessageBoxButton.OK, MessageBoxImage.Warning);
     }
 
