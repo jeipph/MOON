@@ -103,19 +103,19 @@ public sealed partial class OcrPanelViewModel : ObservableObject
         Status = "Leyendo…";
         try
         {
-            BgraImage? image = await _pages.CropAsync(page, rect, _engine.MaxImageSize);
+            byte[]? image = await _pages.ReadOriginalAsync(page);
             if (image is null)
             {
                 Finish(version, "", "No se pudo leer esta página (¿dañada?).");
                 return;
             }
-            IReadOnlyList<string> lines = await _engine.ReadLinesAsync(image, language.Tag);
+            IReadOnlyList<string> lines = await _engine.ReadLinesAsync(image, rect, language.Tag);
             string text = OcrText.Clean(lines);
             Finish(version, text, text.Length == 0
                 ? "No se encontró texto. Prueba a recuadrar solo el bocadillo, con algo de margen."
                 : "");
         }
-        catch (InvalidOperationException exception)
+        catch (Exception exception) when (exception is InvalidOperationException or System.IO.InvalidDataException)
         {
             Finish(version, "", exception.Message);
         }

@@ -634,9 +634,13 @@ public partial class ComicReaderWindow : Window
 
     // ---- Leer texto ----
 
-    // Clic, doble clic o selección en el texto leído: se busca en el diccionario.
-    private void OnOcrSelectionChanged(object sender, RoutedEventArgs e) =>
-        _ = _viewModel.Ocr.LookUpAsync(OcrTextBox.SelectedText, OcrTextBox.SelectionStart);
+    // Clic, doble clic o selección en el texto leído: se busca en el diccionario. Solo si la persona
+    // está en el cuadro: al aparecer el texto leído también cambia el cursor y no debe traducir nada.
+    private void OnOcrSelectionChanged(object sender, RoutedEventArgs e)
+    {
+        if (OcrTextBox.IsKeyboardFocusWithin)
+            _ = _viewModel.Ocr.LookUpAsync(OcrTextBox.SelectedText, OcrTextBox.SelectionStart);
+    }
 
     // Instalar el OCR en inglés pide permisos de administrador: se copia el comando para que lo ejecute la persona.
     private void OnCopyOcrCommandClick(object sender, RoutedEventArgs e) =>

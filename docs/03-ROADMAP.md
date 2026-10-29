@@ -84,12 +84,12 @@ Decisión (2026-10-27): **dos formas de meter libros**: "Añadir libros…" **co
 - *Verificado por Claude (2026-10-27): 72 pruebas; prueba corta: doble clic en "denial" → "nombre: denegación (f)", guardada y visible en Vocabulario. En cómics llegará con el OCR (L8). Falta que lo vea la persona.*
 
 ## L8 — OCR por zona (≈4 h) *(según resultado de S1)*
-- [~] Botón **«Leer texto»** en el lector de cómics (excluye «Marcar zona»): arrastrar un recuadro → se recorta de la página **a resolución completa** (PDF dibujado a 3000 px), con 4 % de margen y agrandado hasta ×2 (`PageImages.CropAsync`, `OcrText.ToPixels/Scale`).
-- [~] `IOcrEngine` (Core) + `WindowsOcrEngine` (Moon.Windows): un motor por idioma, reutilizado.
-- [~] `OcrText.Clean`: une las líneas del bocadillo (y las palabras cortadas con guion), repara apóstrofos ("CANIT" → "CAN'T") y "¡" leídas como i, y pasa las MAYÚSCULAS de cómic a frase normal. 23 pruebas.
-- [~] Panel abajo a la izquierda (`OcrPanelViewModel`): texto editable; clic, doble clic o selección = diccionario inglés → español y «Guardar palabra» (con la frase y la página); «Copiar»; «Guardar como zona» (zona azul con el texto de nota); Esc cierra.
-- [~] Idioma del OCR en el panel (se recuerda en `settings.json` → `OcrLanguage`; por defecto inglés si está). Aviso si falta el inglés, con los pasos y un enlace que copia el comando `Add-WindowsCapability` (pide administrador: lo ejecuta la persona).
-- *Hecho por Claude (2026-10-29): compila sin avisos, 103 pruebas; motor probado con bocadillos reales desde `spikes/S1-ocr`. **Falta probarlo con clics en la ventana** (no se movió el ratón) y que lo vea la persona.*
+- [x] Botón **«Leer texto»** en el lector de cómics (excluye «Marcar zona»): arrastrar un recuadro → `WindowsOcrEngine` recorta la página **a resolución completa** (PDF dibujado a 3000 px, `PageImages.ReadOriginalAsync`), con 4 % de margen, y la agranda hasta ×2 con el decodificador de Windows (`OcrText.ToPixels/Scale`). Agrandar con WPF leía peor ("DIOS..." → "nos...").
+- [x] `IOcrEngine` (Core) + `WindowsOcrEngine` (Moon.Windows): un motor por idioma, reutilizado. El spike S1 usa el mismo motor.
+- [x] `OcrText.Clean`: une las líneas del bocadillo (y las palabras cortadas con guion), repara apóstrofos ("CANIT" → "CAN'T"), "¡" leídas como i y manchas tras ¿/¡ ("¿.Qué"), y pasa las MAYÚSCULAS de cómic a frase normal. 25 pruebas.
+- [x] Panel abajo a la izquierda (`OcrPanelViewModel`): texto editable; clic, doble clic o selección = diccionario inglés → español (solo cuando la persona toca el texto, no al aparecer) y «Guardar palabra» (con la frase y la página); «Copiar»; «Guardar como zona» (zona azul con el texto de nota); Esc cierra.
+- [x] Idioma del OCR en el panel (se recuerda en `settings.json` → `OcrLanguage`; por defecto inglés si está). Aviso si falta el inglés, con los pasos y un enlace que copia el comando `Add-WindowsCapability` (pide administrador: lo ejecuta la persona).
+- *Verificado por Claude (2026-10-29) con clics reales en una copia de prueba (*The Walking Dead*, castellano): "¿Qué coño ha sido todo eso?" (pág. 10) y "Dios..." (pág. 11); recuadro vacío → "No se encontró texto"; «Leer texto» apaga «Marcar zona»; doble clic en "give" → "verbo: dar"; «✓ Guardada»; zona azul con su texto en Notas; Esc cierra; idioma recordado. 105 pruebas. Nota de la prueba: una ventana invisible de la app de Claude tapaba la parte derecha de la barra y algunos clics no llegaban a los botones (se pulsaron por accesibilidad); no es un fallo de MOON. Falta que lo vea la persona.*
 
 ## L9 — "¿Qué es esto?" (≈3 h)
 - [ ] Recorte → portapapeles → abrir servicio de búsqueda inversa (según S4).
@@ -135,7 +135,7 @@ Con **ONNX Runtime** (`Microsoft.ML.OnnxRuntime` + DirectML para usar la tarjeta
 - [x] **Mejoras elegidas** (2026-10-27): ajustes de imagen (L2), Open Library (L3), mejorar nitidez y búsqueda por significado (L14). Descartada: traducción encima del globo.
 
 ## Registro de sesiones
-- **2026-10-29 — L8 (OCR por zona).** S1 resuelto: OCR de Windows sin MSIX. «Leer texto» en cómics con diccionario y vocabulario. Falta: prueba con clics (preguntar antes) y que la persona instale el OCR en inglés si lee cómics en inglés.
+- **2026-10-29 — L8 (OCR por zona).** S1 resuelto: OCR de Windows sin MSIX. «Leer texto» en cómics con diccionario y vocabulario, probado con clics en una copia de prueba (se corrigieron el recorte con WPF, la búsqueda automática al aparecer el texto y "¿."). Falta: que la persona lo pruebe e instale el OCR en inglés si lee cómics en inglés.
 - **2026-10-27 (tarde) — Desarrollo.** Hechos L1, L3, L5, L2+L4 (y PDF como imágenes), L6, L7; L5b programado sin verificar. Voz elegida: Chatterbox con la voz clonada ("Voz para libros 1/2/3" en `%APPDATA%\MOON\voces`). Pruebas con el CBR y el PDF de la persona y un cómic de 200 páginas (memoria estable ~300 MB). **Mañana:** ver "Qué hacer mañana" en `README.md` (primero verificar la voz cuando la persona no use el PC). Preferencias: pruebas cortas; no mover ratón/teclado si la persona está usando el PC.
 - **2026-10-27 — Investigación del ecosistema** (`04-RESEARCH.md` §8): Readest, NeeView (C#/WPF, MIT: referencia para L2), Seanime, Mihon, Komga/Kavita, OCR en ONNX, IA sin spoilers. Decisiones: EN→ES, sin anime, sin cuentas, IA más adelante (L13).
 - **2026-10-26 — Planificación.** Programa 2 redefinido como lector (antes: archivos + notas). Investigación en `04-RESEARCH.md`. Sin código.

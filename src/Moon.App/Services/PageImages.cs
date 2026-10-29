@@ -1,9 +1,7 @@
 using System.IO;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
-using Moon.Core.Annotations;
 using Moon.Core.Comics;
-using Moon.Core.Ocr;
 
 namespace Moon.App.Services;
 
@@ -140,37 +138,19 @@ public sealed class PageImages : IDisposable
     }
 
     /// <summary>
-    /// Un trozo de la página a resolución completa (no la de pantalla), agrandado si es pequeño,
-    /// para leer su texto con el OCR. Null si la página está dañada.
+    /// La página tal cual está en el archivo (no a tamaño de pantalla), para leer su texto con el OCR.
+    /// Null si no se puede leer.
     /// </summary>
-    public Task<BgraImage?> CropAsync(int page, NormalizedRect rect, int maxSize) => Task.Run(() =>
+    public Task<byte[]?> ReadOriginalAsync(int page) => Task.Run(() =>
     {
         try
         {
             // Los PDF se dibujan a lo ancho que se pida: grande, para que las letras salgan nítidas.
-            var image = new BitmapImage();
-            image.BeginInit();
-            image.CacheOption = BitmapCacheOption.OnLoad;
-            image.CreateOptions = BitmapCreateOptions.IgnoreColorProfile;
-            image.StreamSource = new MemoryStream(_source.Read(page, OcrPdfWidth));
-            image.EndInit();
-            image.Freeze();
-
-            PixelRect r = OcrText.ToPixels(rect, image.PixelWidth, image.PixelHeight);
-            BitmapSource crop = new CroppedBitmap(image, new System.Windows.Int32Rect(r.X, r.Y,
-                Math.Min(r.Width, image.PixelWidth - r.X), Math.Min(r.Height, image.PixelHeight - r.Y)));
-            double scale = OcrText.Scale(crop.PixelWidth, crop.PixelHeight, maxSize);
-            if (Math.Abs(scale - 1) > 0.01)
-                crop = new TransformedBitmap(crop, new ScaleTransform(scale, scale));
-            var bgra = new FormatConvertedBitmap(crop, PixelFormats.Bgra32, null, 0);
-            int stride = bgra.PixelWidth * 4;
-            var pixels = new byte[stride * bgra.PixelHeight];
-            bgra.CopyPixels(pixels, stride, 0);
-            return new BgraImage(pixels, bgra.PixelWidth, bgra.PixelHeight);
+            return _source.Read(page, OcrPdfWidth);
         }
-        catch (Exception exception) when (exception is IOException or NotSupportedException or InvalidDataException or ArgumentException or FileFormatException or ObjectDisposedException or InvalidOperationException)
+        catch (Exception exception) when (exception is IOException or InvalidDataException or ObjectDisposedException or InvalidOperationException)
         {
-            return (BgraImage?)null;
+            return (byte[]?)null;
         }
     });
 

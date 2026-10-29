@@ -86,7 +86,8 @@ public static partial class OcrText
     }
 
     /// <summary>"iOOF!" → "¡OOF!": el OCR lee la ¡ de los cómics en español como una i (o | o 1).</summary>
-    public static string FixInvertedMarks(string text) => InvertedExclamation().Replace(text, "¡");
+    public static string FixInvertedMarks(string text) =>
+        StrayAfterOpening().Replace(InvertedExclamation().Replace(text, "¡"), "$1"); // "¿.Qué" → "¿Qué"
 
     /// <summary>Todo junto: líneas del OCR → texto listo para leer.</summary>
     public static string Clean(IEnumerable<string> lines) =>
@@ -163,6 +164,10 @@ public static partial class OcrText
     // Una i minúscula (o | o 1) pegada a una palabra en mayúsculas que acaba en "!".
     [GeneratedRegex(@"(?<!\p{L})[i|1](?=\p{Lu}{2,}[\p{Lu}\p{P}\s]*!)")]
     private static partial Regex InvertedExclamation();
+
+    // Puntos, comas o guiones sueltos que el OCR pega detrás de ¿ o ¡ (manchas del bocadillo).
+    [GeneratedRegex(@"([¿¡])[\s.,·'`’—–-]+(?=\p{L})")]
+    private static partial Regex StrayAfterOpening();
 
     [GeneratedRegex(@"\s{2,}")]
     private static partial Regex Spaces();

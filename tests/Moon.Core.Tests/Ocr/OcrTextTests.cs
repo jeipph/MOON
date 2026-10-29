@@ -41,6 +41,8 @@ public sealed class OcrTextTests
     [InlineData("|NO TE MUEVAS!", "¡NO TE MUEVAS!")]
     [InlineData("iPhone ready!", "iPhone ready!")] // no es una palabra en mayúsculas
     [InlineData("iOOF?", "iOOF?")]                 // sin "!" no se toca
+    [InlineData("¿.Qué coño ha sido eso?", "¿Qué coño ha sido eso?")]
+    [InlineData("¿—Qué pasa?", "¿Qué pasa?")]
     public void InvertedExclamation_IsRepaired(string ocr, string expected) =>
         Assert.Equal(expected, OcrText.FixInvertedMarks(ocr));
 
