@@ -6,6 +6,7 @@ MOON usa estas bibliotecas. Todas permiten usarlas en un programa propio; aquí 
 |---|---|---|---|
 | [foliate-js](https://github.com/johnfactotum/foliate-js) (commit `78914ae`, en `src/Moon.App/Web/foliate-js`) | Mostrar EPUB, MOBI, AZW3, FB2 y CBZ | MIT | © 2022 John Factotum |
 | [zip.js](https://github.com/gildas-lormeau/zip.js) (2.7.x, dentro de foliate-js `vendor/zip.js`) | Leer archivos ZIP en el lector | BSD-3-Clause | © 2023 Gildas Lormeau |
+| [PDF.js](https://github.com/mozilla/pdf.js) 5.5.207 (dentro de foliate-js `vendor/pdfjs`, con sus `cmaps` y `standard_fonts`) | Mostrar PDF con texto seleccionable | Apache-2.0 | © Mozilla Foundation |
 | [fflate](https://github.com/101arrowz/fflate) (0.8.x, dentro de foliate-js `vendor/fflate.js`) | Descomprimir fuentes de libros Kindle | MIT | © 2023 Arjun Barrett |
 | [Microsoft.Web.WebView2](https://www.nuget.org/packages/Microsoft.Web.WebView2) 1.0.4314.35 | El "navegador" interno donde se ve la página | Licencia BSD de Microsoft (ver el paquete) | © Microsoft Corporation |
 | [SharpCompress](https://github.com/adamhathcock/sharpcompress) 0.50.7 | Abrir cómics CBR (RAR) y CB7 (7Z) | MIT | © 2014 Adam Hathcock |

@@ -77,6 +77,9 @@ public partial class MainWindow : Window
     private void OnOpenBookClick(object sender, RoutedEventArgs e) =>
         _viewModel.Library.OpenBookCommand.Execute(BookOf(sender));
 
+    private void OnOpenPdfInOtherModeClick(object sender, RoutedEventArgs e) =>
+        _viewModel.Library.OpenPdfInOtherModeCommand.Execute(BookOf(sender));
+
     private void OnShowInExplorerClick(object sender, RoutedEventArgs e) =>
         _viewModel.Library.ShowInExplorerCommand.Execute(BookOf(sender));
 

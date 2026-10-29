@@ -152,6 +152,7 @@ const open = async ({ url, name, location, settings: s, annotations }) => {
         document.body.append(view)
         await view.open(file)
         view.addEventListener('load', ({ detail: { doc, index } }) => {
+            if (view.isFixedLayout) watchFixed(doc, index)
             doc.addEventListener('keydown', onKey)
             doc.addEventListener('wheel', onWheel, { passive: true })
             // Al soltar el ratón (o Mayús + flechas) se mira si hay texto seleccionado.
@@ -203,6 +204,75 @@ const open = async ({ url, name, location, settings: s, annotations }) => {
         message('')
         post({ type: 'error', message: String(error?.message ?? error) })
     }
+}
+
+// ---- Subrayados en PDF ----
+// foliate-js todavía no dibuja subrayados en páginas fijas (PDF): se dibujan con CSS Custom
+// Highlight sobre la capa de texto de PDF.js. Esa capa aparece un poco después de cargar la página
+// y se rehace al cambiar el zoom, así que se reintenta y se vuelve a dibujar cuando cambia.
+
+const fixedDocs = new Map()     // índice de página → documento
+const fixedRanges = new Map()   // documento → [{ cfi, range }] (para saber qué subrayado se pulsó)
+const highlightStyle = Object.entries(HIGHLIGHTS)
+    .map(([name, color]) => `::highlight(moon-${name}) { background-color: ${color}73; }`).join(' ')
+
+// Devuelve false si algún subrayado aún no se pudo situar (la capa de texto no está lista).
+const drawFixed = (doc, index) => {
+    const win = doc.defaultView
+    if (!win?.CSS?.highlights) return true
+    if (!doc.getElementById('moon-highlights')) {
+        const style = doc.createElement('style')
+        style.id = 'moon-highlights'
+        style.textContent = highlightStyle
+        doc.head.append(style)
+    }
+    const byColor = {}
+    const placed = []
+    let complete = true
+    for (const [cfi, color] of highlights) {
+        try {
+            const { index: page, anchor } = view.resolveCFI(cfi)
+            if (page !== index) continue
+            const range = anchor(doc)
+            if (!range || range.collapsed) { complete = false; continue }
+            ;(byColor[color] ??= []).push(range)
+            placed.push({ cfi, range })
+        } catch {
+            complete = false
+        }
+    }
+    for (const name of Object.keys(HIGHLIGHTS)) win.CSS.highlights.delete(`moon-${name}`)
+    for (const [name, ranges] of Object.entries(byColor)) win.CSS.highlights.set(`moon-${name}`, new win.Highlight(...ranges))
+    fixedRanges.set(doc, placed)
+    return complete
+}
+
+const watchFixed = (doc, index) => {
+    fixedDocs.set(index, doc)
+    let tries = 0
+    const attempt = () => { if (!drawFixed(doc, index) && ++tries < 20) setTimeout(attempt, 250) }
+    attempt()
+    let timer
+    new MutationObserver(() => {
+        clearTimeout(timer)
+        timer = setTimeout(() => drawFixed(doc, index), 100)
+    }).observe(doc.body, { childList: true, subtree: true })
+    // Los resaltados CSS no reciben clics: se mira si el clic cayó sobre alguno.
+    doc.addEventListener('click', e => {
+        if (!doc.getSelection()?.isCollapsed) return
+        for (const { cfi, range } of fixedRanges.get(doc) ?? []) {
+            for (const r of range.getClientRects()) {
+                if (e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top && e.clientY <= r.bottom) {
+                    post({ type: 'annotation-clicked', cfi })
+                    return
+                }
+            }
+        }
+    })
+}
+
+const redrawFixed = () => {
+    for (const [index, doc] of fixedDocs) if (doc.defaultView) drawFixed(doc, index)
 }
 
 // ---- Lectura en voz alta ----
@@ -335,11 +405,13 @@ host.addEventListener('message', ({ data }) => {
         case 'highlight':
             highlights.set(data.cfi, data.color)
             view?.addAnnotation({ value: data.cfi, color: data.color })
+            if (view?.isFixedLayout) redrawFixed()
             clearSelection()
             break
         case 'remove-highlight':
             highlights.delete(data.cfi)
             view?.deleteAnnotation({ value: data.cfi })
+            if (view?.isFixedLayout) redrawFixed()
             break
         case 'clear-selection': clearSelection(); break
         case 'tts-start': ttsStart().catch(e => post({ type: 'tts-end', error: String(e?.message ?? e) })); break

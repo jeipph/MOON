@@ -34,6 +34,11 @@ public sealed partial class BookItemViewModel : ObservableObject
 
     public bool HasProgress => Book.Progress > 0;
 
+    public bool IsPdf => Book.Format == BookFormat.Pdf;
+
+    /// <summary>En el menú de un PDF: abrirlo en el otro modo (y recordarlo).</summary>
+    public string PdfModeMenuHeader => Book.IsPdfDocument ? "Abrir como imágenes (manga)" : "Abrir como documento (texto)";
+
     /// <summary>False si el libro está en un disco desconectado.</summary>
     public bool IsAvailable { get; }
 

@@ -5,6 +5,7 @@
 <!--
   Seguridad: un EPUB puede traer JavaScript. Solo se permiten los scripts de MOON (https://app.moon);
   los del libro quedan bloqueados (las páginas del libro son blob: y heredan esta política).
+  Para PDF, PDF.js usa un "worker" de app.moon y lee de allí sus tipografías y tablas de caracteres.
 -->
 <meta http-equiv="Content-Security-Policy"
       content="default-src 'none';
@@ -14,7 +15,8 @@
                font-src blob: data:;
                media-src blob: data:;
                frame-src blob:;
-               connect-src https://book.moon blob: data:;">
+               connect-src https://book.moon https://app.moon blob: data:;
+               worker-src https://app.moon blob:;">
 <title>MOON</title>
 <link rel="stylesheet" href="reader.css">
 </head>

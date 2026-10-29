@@ -5,6 +5,7 @@ using System.Windows;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Moon.App.Services;
+using Moon.Core.Comics;
 using Moon.Core.Library;
 
 namespace Moon.App.ViewModels;
@@ -157,6 +158,22 @@ public sealed partial class LibraryViewModel : ObservableObject, IDisposable
         string? error = await _reader.OpenAsync(current, path);
         if (error is not null)
             Status = error;
+    }
+
+    /// <summary>
+    /// PDF: cambia entre "como imágenes" (manga escaneado) y "como documento" (texto seleccionable),
+    /// lo recuerda para ese PDF y lo abre así.
+    /// </summary>
+    [RelayCommand]
+    private async Task OpenPdfInOtherMode(BookItemViewModel? book)
+    {
+        if (book is null || book.Book.Format != BookFormat.Pdf)
+            return;
+        Book current = _library.Books.FirstOrDefault(b => b.Id == book.Book.Id) ?? book.Book;
+        ComicView view = ComicView.FromJson(current.ComicView) ?? ComicView.Default(isManga: false);
+        _library.SetComicView(current.Id, view with { PdfAsDocument = !current.IsPdfDocument });
+        Populate(); // el menú del libro muestra ya el otro modo
+        await OpenBook(Books.FirstOrDefault(b => b.Book.Id == current.Id) ?? book);
     }
 
     [RelayCommand]

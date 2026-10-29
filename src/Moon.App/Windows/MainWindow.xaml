@@ -201,6 +201,8 @@
                                     <Border.ContextMenu>
                                         <ContextMenu>
                                             <MenuItem Header="Abrir" Click="OnOpenBookClick" />
+                                            <MenuItem Header="{Binding PdfModeMenuHeader}" Click="OnOpenPdfInOtherModeClick"
+                                                      Visibility="{Binding IsPdf, Converter={StaticResource Visible}}" />
                                             <MenuItem Header="Mostrar en el Explorador" Click="OnShowInExplorerClick" />
                                             <Separator />
                                             <MenuItem Header="Quitar de la biblioteca…" Click="OnRemoveBookClick" />

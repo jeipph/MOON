@@ -36,11 +36,14 @@ public sealed record Book(
     /// <summary>Dirección y ajustes de imagen guardados (JSON); null = nunca abierto como cómic.</summary>
     public string? ComicView { get; init; }
 
-    /// <summary>Se abre en el lector de libros (texto que se reacomoda).</summary>
-    public bool OpensAsBook => Format is BookFormat.Epub or BookFormat.Mobi or BookFormat.Azw3 or BookFormat.Fb2;
+    /// <summary>Un PDF que la persona eligió abrir como documento (ver <see cref="Comics.ComicView.PdfAsDocument"/>).</summary>
+    public bool IsPdfDocument => Format == BookFormat.Pdf && Comics.ComicView.FromJson(ComicView)?.PdfAsDocument == true;
 
-    /// <summary>Se abre en el lector de cómics (páginas de imagen). Los PDF también, de momento.</summary>
-    public bool OpensAsComic => BookFormats.IsComic(Format) || Format == BookFormat.Pdf;
+    /// <summary>Se abre en el lector de libros (texto seleccionable): EPUB y demás, y los PDF "como documento".</summary>
+    public bool OpensAsBook => Format is BookFormat.Epub or BookFormat.Mobi or BookFormat.Azw3 or BookFormat.Fb2 || IsPdfDocument;
+
+    /// <summary>Se abre en el lector de cómics (páginas de imagen): cómics y los PDF "como imágenes" (por defecto).</summary>
+    public bool OpensAsComic => BookFormats.IsComic(Format) || (Format == BookFormat.Pdf && !IsPdfDocument);
 }
 
 /// <summary>Un archivo encontrado al recorrer una carpeta. <paramref name="Modified"/> en UTC.</summary>

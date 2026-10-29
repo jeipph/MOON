@@ -97,8 +97,10 @@ Decisión (2026-10-27): **dos formas de meter libros**: "Añadir libros…" **co
 
 ## L10 — PDF (≈4 h)
 - [x] (Adelantado en L2) PDF como páginas de imagen en el lector de cómics, con `Windows.Data.Pdf`. Portada en la biblioteca.
-- [ ] Visor PDF con texto seleccionable (PDF.js en WebView2 o alternativa decidida).
-- [ ] Resaltado de texto y notas con coordenadas.
+- [x] **PDF «como documento»** en el lector de libros: foliate-js ya traía soporte para PDF con **PDF.js 5.5.207** (Apache-2.0); se añadieron `foliate-js/pdf.js` y `vendor/pdfjs` (sin los `.map`, 5 MB) desde la copia del spike S2 (mismo commit `78914ae`). La política de seguridad de `reader.html` permite el worker de PDF.js y leer sus tipografías y tablas de caracteres de `app.moon`. Texto seleccionable, diccionario, notas, panel de notas y exportar: lo mismo que en EPUB.
+- [x] Subrayado y notas: foliate-js no dibuja subrayados en páginas fijas (un «TODO» suyo), así que `reader.js` los dibuja con **CSS Custom Highlight** sobre la capa de texto de PDF.js (reintenta hasta que la capa existe y redibuja si PDF.js la rehace al cambiar el zoom); el clic sobre un subrayado se detecta comparando con su posición. Se guardan con CFI, igual que en EPUB.
+- [x] Elegir modo por PDF: `ComicView.PdfAsDocument` (por defecto **como imágenes**, lo mejor para manga escaneado). En la biblioteca, clic derecho en un PDF → «Abrir como documento (texto)» o «Abrir como imágenes (manga)», y se recuerda.
+- *Verificado por Claude (2026-10-29) con la guía de NOX en PDF: abrir como documento, seleccionar «minimalista», subrayar en amarillo, verlo al reabrir, clic → nota «prueba de nota en PDF», cambiar a verde y verlo redibujado. Falta que lo vea la persona.*
 
 ## ~~L11 — Traducción~~
 - Descartado por la persona (2026-10-29): el diccionario inglés → español palabra por palabra es suficiente.

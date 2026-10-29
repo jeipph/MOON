@@ -9,6 +9,12 @@ namespace Moon.Core.Comics;
 /// </summary>
 public sealed record ComicView(ReadingDirection Direction, ImageAdjustments Adjustments)
 {
+    /// <summary>
+    /// Solo PDF: true = se abre como documento (texto que se puede seleccionar y subrayar);
+    /// false = como imágenes, igual que un cómic (lo mejor para manga escaneado).
+    /// </summary>
+    public bool PdfAsDocument { get; init; }
+
     private static readonly JsonSerializerOptions Options = new() { Converters = { new JsonStringEnumConverter() } };
 
     public static ComicView Default(bool isManga) =>
