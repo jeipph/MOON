@@ -23,7 +23,7 @@
     <ApplicationManifest>app.manifest</ApplicationManifest>
 
     <!-- Datos que muestra Windows en Propiedades → Detalles -->
-    <Version>0.1.0</Version>
+    <Version>0.2.0</Version>
     <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
     <Product>MOON</Product>
     <Description>MOON: lector de libros, cómics y manga</Description>

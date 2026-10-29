@@ -2,7 +2,7 @@
 
 Lector de escritorio para **Windows 10/11** hecho en **C# / .NET 10 / WPF**: biblioteca (carpeta propia y discos externos), libros EPUB/MOBI/AZW3/FB2, cómics CBZ/CBR/CB7, manga en PDF, subrayado y notas, diccionario inglés → español con vocabulario para Anki, y lectura en voz alta con una voz clonada (Chatterbox, en el propio PC). Sin cuentas ni internet.
 
-## Estado (2026-10-27)
+## Estado (2026-10-29) — versión 0.2.0
 
 | Hito | Qué | Estado |
 |---|---|---|
@@ -10,25 +10,23 @@ Lector de escritorio para **Windows 10/11** hecho en **C# / .NET 10 / WPF**: bib
 | L3 | Biblioteca: añadir (copia), enlazar carpetas y discos externos | ✅ (falta Open Library) |
 | L5 | Lector de libros (foliate-js en WebView2) | ✅ |
 | L2 + L4 | Lector de cómics y manga (CBZ, CBR, CB7, PDF como imágenes) | ✅ |
+| L5b | Lectura en voz alta (Chatterbox o voz de Windows) | ✅ oída funcionando |
 | L6 | Subrayado, notas, marcadores, zonas en cómics, exportar | ✅ |
 | L7 | Diccionario inglés → español sin internet + vocabulario (Anki) | ✅ |
-| L5b | Lectura en voz alta (Chatterbox o voz de Windows) | ⚠️ **código hecho, falta oírla funcionar** |
 | L8 | «Leer texto» en cómics: OCR de un bocadillo → diccionario y vocabulario | ✅ |
+| L9, L11 | «¿Qué es esto?» y traducción | ❌ descartados por la persona |
+| L10 | PDF «como documento» (texto, subrayado, notas) | ✅ |
+| L12 | 1000+ libros, atajos de teclado, instalador | ✅ |
+| L13–L14 | IA (opcionales) | sin empezar |
 
-Todo lo marcado ✅ lo probó Claude con clics reales en una copia de prueba; **falta que lo vea la persona**.
+Instalador: ver `installer/README.md` → `dist/MOON-0.2.0-instalador.exe`. Guía para quien lo instala: `docs/LEEME.md`.
 
-## ▶ Qué hacer mañana (en este orden)
+## ▶ Qué falta (lo tiene que ver la persona)
 
-1. **Verificar la voz (L5b)** — *solo cuando la persona no esté usando el PC* (las pruebas mueven el ratón y suenan por los altavoces):
-   - Abrir `MOON.exe --datos <carpeta de prueba>`, abrir *Don Quijote*, pulsar 🔊 **Escuchar**.
-   - Comprobar: empieza a hablar (la primera vez ~30 s), resalta la frase, pasa de página sola, la velocidad cambia, el temporizador para, y **NOX** muestra el libro con ⏯ (controles multimedia de Windows).
-   - El último fallo ("Fin del libro" al empezar en una portada sin texto) se corrigió **sin volver a probar**.
-   - La persona debe elegir cuál de "Voz para libros 1/2/3" le gusta más.
-2. **Que la persona pruebe MOON con sus libros de verdad** (su biblioteca real está vacía; las pruebas se hicieron con `--datos`):
-   enlazar su disco/carpeta, abrir su CBR (*The Walking Dead*) y su manga PDF (*Saga Sword&Shield*), subrayar, diccionario, vocabulario.
-3. **Que la persona pruebe «Leer texto» (L8)**: abrir un cómic, pulsar «Leer texto», recuadrar un bocadillo, clic en una palabra, «Guardar palabra», «Guardar como zona». Si lee cómics en inglés: instalar el OCR en inglés (el panel copia el comando).
-4. **Siguiente hito según el ROADMAP:** L9 («¿Qué es esto?»), luego L10…L14. Ver `docs/03-ROADMAP.md`.
-5. Pendientes menores: Open Library (L3), "Continuar leyendo" ya funciona; instalador de MOON (L12).
+1. Elegir la voz que más le guste («Voz para libros 1/2/3»).
+2. Comprobar en la biblioteca la **rueda del ratón** y el **teclado** (flechas, Enter, Ctrl+F): en las pruebas automáticas no llegan a la app.
+3. Probar MOON con sus libros de verdad (su CBR y su manga en PDF).
+4. Opcional: Open Library (L3), IA (L13–L14).
 
 ## Para retomar con un modelo de IA
 
