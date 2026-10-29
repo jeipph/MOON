@@ -93,6 +93,7 @@ Decisión (2026-10-27): **dos formas de meter libros**: "Añadir libros…" **co
 - *Verificado por Claude (2026-10-29) con clics reales en una copia de prueba (*The Walking Dead*, castellano): "¿Qué coño ha sido todo eso?" (pág. 10) y "Dios..." (pág. 11); recuadro vacío → "No se encontró texto"; «Leer texto» apaga «Marcar zona»; doble clic en "give" → "verbo: dar"; «✓ Guardada»; zona azul con su texto en Notas; Esc cierra; idioma recordado. 105 pruebas. Nota de la prueba: una ventana invisible de la app de Claude tapaba la parte derecha de la barra y algunos clics no llegaban a los botones (se pulsaron por accesibilidad); no es un fallo de MOON. Falta que lo vea la persona.*
 
 ## L9 — "¿Qué es esto?" (≈3 h)
+- *En curso (2026-10-29): hecho en Core la tabla `research` (base de datos versión 6), `ResearchItem`, `ImageSearchSites` (Google Lens, Bing, SauceNAO, TinEye: la persona pega el recorte con Ctrl+V; MOON no sube nada) y los métodos de `LibraryService`. Falta: pruebas del almacén, modo «¿Qué es esto?» en el lector de cómics (recorte a resolución completa → ventana con nota y botones de búsqueda → portapapeles + navegador), ventana «Cosas por investigar» en la biblioteca y aviso de privacidad.*
 - [ ] Recorte → portapapeles → abrir servicio de búsqueda inversa (según S4).
 - [ ] Aviso de privacidad antes de subir/abrir.
 - [ ] Lista "Cosas por investigar" con recortes y notas.

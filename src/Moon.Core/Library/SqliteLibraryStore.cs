@@ -9,7 +9,7 @@ namespace Moon.Core.Library;
 /// </summary>
 public sealed class SqliteLibraryStore
 {
-    private const int SchemaVersion = 5;
+    private const int SchemaVersion = 6;
     private readonly string _connectionString;
 
     public SqliteLibraryStore(string databasePath)
@@ -69,6 +69,22 @@ public sealed class SqliteLibraryStore
                     book_id     INTEGER REFERENCES books(id) ON DELETE SET NULL,
                     book_title  TEXT NOT NULL DEFAULT '',
                     location    TEXT,
+                    created_at  TEXT NOT NULL
+                );
+                """);
+        }
+        if (version < 6)
+        {
+            // "Cosas por investigar": recortes con nota. Como el vocabulario, sobreviven al libro.
+            Execute(connection, """
+                CREATE TABLE research (
+                    id          INTEGER PRIMARY KEY,
+                    book_id     INTEGER REFERENCES books(id) ON DELETE SET NULL,
+                    book_title  TEXT NOT NULL DEFAULT '',
+                    location    TEXT,
+                    place       TEXT NOT NULL DEFAULT '',
+                    image_file  TEXT NOT NULL,
+                    note        TEXT NOT NULL DEFAULT '',
                     created_at  TEXT NOT NULL
                 );
                 """);
@@ -334,6 +350,53 @@ public sealed class SqliteLibraryStore
     {
         using SqliteConnection connection = Open();
         Execute(connection, "DELETE FROM vocabulary WHERE id = $id", ("$id", id));
+    }
+
+    // ---- Cosas por investigar ----
+
+    public IReadOnlyList<Research.ResearchItem> GetResearch()
+    {
+        using SqliteConnection connection = Open();
+        using SqliteCommand command = connection.CreateCommand();
+        command.CommandText = """
+            SELECT id, book_id, book_title, location, place, image_file, note, created_at
+            FROM research ORDER BY created_at DESC
+            """;
+        using SqliteDataReader reader = command.ExecuteReader();
+        var list = new List<Research.ResearchItem>();
+        while (reader.Read())
+        {
+            list.Add(new Research.ResearchItem(
+                reader.GetInt64(0), reader.IsDBNull(1) ? null : reader.GetInt64(1), reader.GetString(2),
+                reader.IsDBNull(3) ? null : reader.GetString(3), reader.GetString(4), reader.GetString(5),
+                reader.GetString(6), ParseDate(reader.GetString(7))!.Value));
+        }
+        return list;
+    }
+
+    public Research.ResearchItem AddResearch(Research.ResearchItem item)
+    {
+        using SqliteConnection connection = Open();
+        long id = (long)Scalar(connection, """
+            INSERT INTO research (book_id, book_title, location, place, image_file, note, created_at)
+            VALUES ($book, $title, $location, $place, $image, $note, $created)
+            RETURNING id
+            """,
+            ("$book", item.BookId), ("$title", item.BookTitle), ("$location", item.Location), ("$place", item.Where),
+            ("$image", item.ImageFile), ("$note", item.Note), ("$created", FormatDate(item.CreatedAt)))!;
+        return item with { Id = id };
+    }
+
+    public void UpdateResearchNote(long id, string note)
+    {
+        using SqliteConnection connection = Open();
+        Execute(connection, "UPDATE research SET note = $note WHERE id = $id", ("$note", note), ("$id", id));
+    }
+
+    public void DeleteResearch(long id)
+    {
+        using SqliteConnection connection = Open();
+        Execute(connection, "DELETE FROM research WHERE id = $id", ("$id", id));
     }
 
     private static Annotations.NormalizedRect? ParseRect(string text)
